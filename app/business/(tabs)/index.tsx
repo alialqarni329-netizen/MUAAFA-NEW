@@ -28,7 +28,6 @@ interface StatCard {
 
 export default function BusinessDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [businessId, setBusinessId] = useState<string | null>(null);
   const [businessName, setBusinessName] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -45,7 +44,6 @@ export default function BusinessDashboard() {
       .maybeSingle();
 
     if (!biz) { setLoading(false); return; }
-    setBusinessId(biz.id);
     setBusinessName(biz.business_name);
 
     const today = new Date().toISOString().split('T')[0];

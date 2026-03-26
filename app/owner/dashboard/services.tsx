@@ -119,7 +119,6 @@ export default function OwnerServices() {
 
   useEffect(() => { checkServices(); }, [checkServices]);
 
-  const allOperational = services.every(s => s.status === 'operational');
   const downCount = services.filter(s => s.status === 'down').length;
   const degradedCount = services.filter(s => s.status === 'degraded').length;
 

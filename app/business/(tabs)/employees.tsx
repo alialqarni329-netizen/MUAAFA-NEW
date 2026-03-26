@@ -4,7 +4,7 @@ import {
   TouchableOpacity, ActivityIndicator, RefreshControl,
   Alert, TextInput, Modal,
 } from 'react-native';
-import { UserPlus, Search, Phone, Mail, Shield, User, X } from 'lucide-react-native';
+import { UserPlus, Search, Phone, Mail, User, X } from 'lucide-react-native';
 import { supabase } from '@lib/supabase';
 import { Colors } from '@constants/colors';
 import { Typography } from '@constants/typography';

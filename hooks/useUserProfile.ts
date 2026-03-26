@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@lib/supabase';
-import type { User } from '@types/database';
+import type { User } from '../types/database';
 
 interface UseUserProfileResult {
   profile: User | null;
@@ -14,7 +14,7 @@ export function useUserProfile(userId?: string): UseUserProfileResult {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetch = async () => {
+  const fetch = useCallback(async () => {
     if (!userId) {
       setLoading(false);
       return;
@@ -34,9 +34,9 @@ export function useUserProfile(userId?: string): UseUserProfileResult {
       setProfile(data as User);
     }
     setLoading(false);
-  };
+  }, [userId]);
 
-  useEffect(() => { fetch(); }, [userId]);
+  useEffect(() => { fetch(); }, [fetch]);
 
   return { profile, loading, error, refetch: fetch };
 }

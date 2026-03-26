@@ -3,7 +3,7 @@ import {
   View, Text, FlatList, TextInput, TouchableOpacity,
   StyleSheet, ActivityIndicator, RefreshControl, Alert,
 } from 'react-native';
-import { Search, UserX, UserCheck, MoreVertical } from 'lucide-react-native';
+import { Search, UserX, UserCheck } from 'lucide-react-native';
 import { supabase } from '@lib/supabase';
 import { Colors } from '@constants/colors';
 import { Typography } from '@constants/typography';

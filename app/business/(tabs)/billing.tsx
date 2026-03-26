@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity,
+  View, Text, FlatList,
   StyleSheet, ActivityIndicator, RefreshControl,
 } from 'react-native';
-import { DollarSign, CheckCircle, Clock, XCircle, FileText } from 'lucide-react-native';
+import { CheckCircle, Clock, XCircle, FileText } from 'lucide-react-native';
 import { supabase } from '@lib/supabase';
 import { Colors } from '@constants/colors';
 import { Typography } from '@constants/typography';

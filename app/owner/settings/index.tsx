@@ -6,19 +6,12 @@ import {
 import { router } from 'expo-router';
 import {
   Bell, Shield, Globe, Users, CreditCard,
-  Database, LogOut, ChevronLeft, Moon, Smartphone,
+  Database, LogOut, Moon, Smartphone,
 } from 'lucide-react-native';
 import { supabase } from '@lib/supabase';
 import { Colors } from '@constants/colors';
 import { Typography } from '@constants/typography';
 import { Layout } from '@constants/layout';
-
-interface ToggleSetting {
-  id: string;
-  label: string;
-  sublabel?: string;
-  value: boolean;
-}
 
 export default function OwnerSettings() {
   const [toggles, setToggles] = useState<Record<string, boolean>>({

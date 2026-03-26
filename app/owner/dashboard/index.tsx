@@ -154,7 +154,6 @@ export default function OwnerDashboard() {
   );
 }
 
-const Colors2 = { owner: '#f97316' };
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {

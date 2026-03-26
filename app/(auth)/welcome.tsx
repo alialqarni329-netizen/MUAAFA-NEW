@@ -1,7 +1,6 @@
 import React from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity,
-  ImageBackground, StatusBar,
+  View, Text, StyleSheet, TouchableOpacity, StatusBar,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Heart, Shield, Activity } from 'lucide-react-native';

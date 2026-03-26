@@ -17,7 +17,7 @@ export function useRealtime({ table, event = '*', filter, onChange }: UseRealtim
   useEffect(() => {
     const channelName = `realtime-${table}-${Date.now()}`;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let query = supabase.channel(channelName).on('postgres_changes' as any, {
+    const query = supabase.channel(channelName).on('postgres_changes' as any, {
       event,
       schema: 'public',
       table,

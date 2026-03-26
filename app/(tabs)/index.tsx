@@ -63,7 +63,6 @@ export default function AIDoctorScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [dailyCount, setDailyCount] = useState(0);
-  const [userId, setUserId] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
@@ -71,12 +70,12 @@ export default function AIDoctorScreen() {
 
   useEffect(() => {
     initSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const initSession = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    setUserId(user.id);
     await loadOrCreateConversation(user.id);
     await loadDailyCount(user.id);
   };
@@ -247,6 +246,7 @@ export default function AIDoctorScreen() {
       setLoading(false);
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [input, selectedImage, dailyCount, messages, conversationId]);
 
   const remaining = AI_CONFIG.MAX_MESSAGES_PER_DAY - dailyCount;
