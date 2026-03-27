@@ -23,51 +23,62 @@ export default function BusinessAnalytics() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    setError(null);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    const { data: biz } = await supabase
-      .from('business_registrations')
-      .select('id')
-      .eq('owner_id', user.id)
-      .eq('status', 'approved')
-      .maybeSingle();
+      const { data: biz, error: bizErr } = await supabase
+        .from('business_registrations')
+        .select('id')
+        .eq('owner_id', user.id)
+        .eq('status', 'approved')
+        .maybeSingle();
 
-    if (!biz) { setLoading(false); return; }
+      if (bizErr) throw bizErr;
+      if (!biz) { setLoading(false); return; }
 
-    const thisMonth = new Date();
-    thisMonth.setDate(1);
+      const thisMonth = new Date();
+      thisMonth.setDate(1);
 
-    const [sessRes, payRes] = await Promise.all([
-      supabase.from('medical_sessions').select('id, status, patient_id').eq('business_id', biz.id),
-      supabase.from('payment_transactions')
-        .select('amount, created_at')
-        .eq('status', 'paid')
-        .gte('created_at', thisMonth.toISOString()),
-    ]);
+      const [sessRes, payRes] = await Promise.all([
+        supabase.from('medical_sessions').select('id, status, patient_id').eq('business_id', biz.id),
+        supabase.from('payment_transactions')
+          .select('amount, created_at')
+          .eq('status', 'paid')
+          .gte('created_at', thisMonth.toISOString()),
+      ]);
 
-    const sessions = sessRes.data ?? [];
-    const payments = payRes.data ?? [];
-    const revenue = payments.reduce((s, p) => s + (p.amount ?? 0), 0);
-    const uniquePatients = new Set(sessions.map(s => s.patient_id)).size;
+      if (sessRes.error) throw sessRes.error;
+      if (payRes.error) throw payRes.error;
 
-    const statusCounts = ['pending', 'confirmed', 'completed', 'cancelled'].map(st => ({
-      status: st,
-      count: sessions.filter(s => s.status === st).length,
-    }));
+      const sessions = sessRes.data ?? [];
+      const payments = payRes.data ?? [];
+      const revenue = payments.reduce((s, p) => s + (p.amount ?? 0), 0);
+      const uniquePatients = new Set(sessions.map(s => s.patient_id)).size;
 
-    setData({
-      monthlyRevenue: revenue,
-      monthlyGrowth: 12.5,
-      totalPatients: uniquePatients,
-      avgSessionValue: sessions.length ? revenue / sessions.length : 0,
-      sessionsByStatus: statusCounts,
-      revenueByWeek: [],
-    });
-    setLoading(false);
-    setRefreshing(false);
+      const statusCounts = ['pending', 'confirmed', 'completed', 'cancelled'].map(st => ({
+        status: st,
+        count: sessions.filter(s => s.status === st).length,
+      }));
+
+      setData({
+        monthlyRevenue: revenue,
+        monthlyGrowth: 0,
+        totalPatients: uniquePatients,
+        avgSessionValue: sessions.length ? revenue / sessions.length : 0,
+        sessionsByStatus: statusCounts,
+        revenueByWeek: [],
+      });
+    } catch {
+      setError('تعذر تحميل بيانات التحليلات. يرجى المحاولة مجدداً.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);

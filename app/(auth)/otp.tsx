@@ -3,9 +3,10 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowRight, ShieldCheck } from 'lucide-react-native';
 import { supabase } from '@lib/supabase';
+import { resolveUserPortal, PORTAL_HOME } from '@lib/authGuard';
 import { Colors } from '@constants/colors';
 import { Typography } from '@constants/typography';
 import { Layout } from '@constants/layout';
@@ -14,6 +15,9 @@ const OTP_LENGTH = 6;
 const RESEND_TIMEOUT = 60;
 
 export default function OtpScreen() {
+  // email is passed as a URL param: /(auth)/otp?email=user@example.com&type=signup
+  const { email = '', type = 'signup' } = useLocalSearchParams<{ email: string; type: string }>();
+
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const [loading, setLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(RESEND_TIMEOUT);
@@ -47,31 +51,49 @@ export default function OtpScreen() {
       Alert.alert('خطأ', 'يرجى إدخال رمز التحقق كاملاً');
       return;
     }
-
-    setLoading(true);
-    // Verify OTP via Supabase token
-    const { data, error } = await supabase.auth.verifyOtp({
-      token: code,
-      type: 'email',
-    } as never);
-
-    setLoading(false);
-
-    if (error) {
-      Alert.alert('خطأ', 'رمز التحقق غير صحيح أو منتهي الصلاحية');
+    if (!email) {
+      Alert.alert('خطأ', 'البريد الإلكتروني مفقود. يرجى البدء من جديد.');
+      router.replace('/(auth)/register' as never);
       return;
     }
 
-    if (data?.user) {
-      router.replace('/(tabs)' as never);
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email,
+        token: code,
+        type: type === 'recovery' ? 'recovery' : 'signup',
+      });
+
+      if (error) {
+        Alert.alert('خطأ', 'رمز التحقق غير صحيح أو منتهي الصلاحية');
+        return;
+      }
+
+      if (data?.user) {
+        const portal = await resolveUserPortal(data.user.id);
+        router.replace(PORTAL_HOME[portal] as never);
+      }
+    } catch {
+      Alert.alert('خطأ', 'حدث خطأ أثناء التحقق. يرجى المحاولة مجدداً.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleResend = async () => {
-    if (resendTimer > 0) return;
-    setResendTimer(RESEND_TIMEOUT);
-    // In a real app, resend via supabase.auth.resend() with user's email
-    Alert.alert('تم الإرسال', 'تم إعادة إرسال رمز التحقق');
+    if (resendTimer > 0 || !email) return;
+    try {
+      const { error } = await supabase.auth.resend({
+        email,
+        type: type === 'recovery' ? 'recovery' : 'signup',
+      });
+      if (error) throw error;
+      setResendTimer(RESEND_TIMEOUT);
+      Alert.alert('تم الإرسال', 'تم إعادة إرسال رمز التحقق إلى بريدك الإلكتروني');
+    } catch {
+      Alert.alert('خطأ', 'تعذر إعادة الإرسال. يرجى المحاولة لاحقاً.');
+    }
   };
 
   const filledCount = otp.filter(d => d !== '').length;
@@ -91,7 +113,8 @@ export default function OtpScreen() {
         </View>
         <Text style={styles.title}>التحقق من الهوية</Text>
         <Text style={styles.subtitle}>
-          أدخل رمز التحقق المكون من 6 أرقام الذي أُرسل إلى بريدك الإلكتروني
+          أدخل رمز التحقق المكون من 6 أرقام الذي أُرسل إلى{'\n'}
+          <Text style={{ fontWeight: 'bold', color: Colors.primary }}>{email || 'بريدك الإلكتروني'}</Text>
         </Text>
 
         {/* OTP Inputs */}

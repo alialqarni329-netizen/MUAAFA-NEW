@@ -6,6 +6,7 @@ import {
 import { router } from 'expo-router';
 import { Mail, ArrowRight } from 'lucide-react-native';
 import { supabase } from '@lib/supabase';
+import { forgotPasswordSchema, getFirstError } from '@lib/validation';
 import { Colors } from '@constants/colors';
 import { Typography } from '@constants/typography';
 import { Layout } from '@constants/layout';
@@ -16,7 +17,9 @@ export default function ForgotPasswordScreen() {
   const [sent, setSent] = useState(false);
 
   const handleReset = async () => {
-    if (!email.trim()) { Alert.alert('خطأ', 'يرجى إدخال البريد الإلكتروني'); return; }
+    const result = forgotPasswordSchema.safeParse({ email: email.trim() });
+    const err = getFirstError(result);
+    if (err) { Alert.alert('خطأ في البيانات', err); return; }
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase());
     setLoading(false);

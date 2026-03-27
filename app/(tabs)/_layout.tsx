@@ -1,8 +1,33 @@
-import { Tabs } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import { Tabs, router } from 'expo-router';
 import { Home, Activity, Pill, FileText, User } from 'lucide-react-native';
+import { supabase } from '@lib/supabase';
 import { Colors } from '@constants/colors';
 
 export default function IndividualTabsLayout() {
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    const guard = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        router.replace('/(auth)/welcome' as never);
+        return;
+      }
+      setChecking(false);
+    };
+    guard();
+  }, []);
+
+  if (checking) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <Tabs
       screenOptions={{

@@ -6,6 +6,7 @@ import {
 import { Calendar, CheckCircle, Clock, XCircle, Video, MessageCircle } from 'lucide-react-native';
 import { supabase } from '@lib/supabase';
 import { StatusBadge } from '@components/common';
+import { useRealtime } from '@hooks/useRealtime';
 import { Colors } from '@constants/colors';
 import { Typography } from '@constants/typography';
 import { Layout } from '@constants/layout';
@@ -32,35 +33,47 @@ export default function BusinessSessions() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'today' | 'pending'>('all');
+  const [error, setError] = useState<string | null>(null);
 
   const fetchSessions = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    setError(null);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    const { data: biz } = await supabase
-      .from('business_registrations')
-      .select('id')
-      .eq('owner_id', user.id)
-      .maybeSingle();
-    if (!biz) { setLoading(false); return; }
+      const { data: biz, error: bizErr } = await supabase
+        .from('business_registrations')
+        .select('id')
+        .eq('owner_id', user.id)
+        .maybeSingle();
+      if (bizErr) throw bizErr;
+      if (!biz) { setLoading(false); return; }
 
-    let query = supabase
-      .from('medical_sessions')
-      .select('*')
-      .eq('business_id', biz.id)
-      .order('scheduled_at', { ascending: false });
+      let query = supabase
+        .from('medical_sessions')
+        .select('*')
+        .eq('business_id', biz.id)
+        .order('scheduled_at', { ascending: false });
 
-    const today = new Date().toISOString().split('T')[0];
-    if (filter === 'today') query = query.gte('scheduled_at', today).lt('scheduled_at', today + 'T23:59:59');
-    else if (filter === 'pending') query = query.eq('status', 'pending');
+      const today = new Date().toISOString().split('T')[0];
+      if (filter === 'today') query = query.gte('scheduled_at', today).lt('scheduled_at', today + 'T23:59:59');
+      else if (filter === 'pending') query = query.eq('status', 'pending');
 
-    const { data } = await query.limit(50);
-    setSessions((data ?? []) as BusinessSession[]);
-    setLoading(false);
-    setRefreshing(false);
+      const { data, error: fetchErr } = await query.limit(50);
+      if (fetchErr) throw fetchErr;
+      setSessions((data ?? []) as BusinessSession[]);
+    } catch {
+      setError('تعذر تحميل الجلسات. يرجى المحاولة مجدداً.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, [filter]);
 
   useEffect(() => { fetchSessions(); }, [fetchSessions]);
+
+  // Auto-refresh when any session changes in real-time
+  useRealtime({ table: 'medical_sessions', onChange: fetchSessions });
 
   const updateStatus = async (id: string, status: 'confirmed' | 'cancelled') => {
     await supabase.from('medical_sessions').update({ status }).eq('id', id);

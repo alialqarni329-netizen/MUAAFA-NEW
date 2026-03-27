@@ -29,26 +29,33 @@ export default function PharmaciesScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchPharmacies = useCallback(async () => {
-    const { data } = await supabase
-      .from('business_registrations')
-      .select('id, business_name, phone')
-      .eq('business_type', 'pharmacy')
-      .eq('status', 'approved');
+    try {
+      const { data, error: fetchErr } = await supabase
+        .from('business_registrations')
+        .select('id, business_name, phone, address, working_hours')
+        .eq('business_type', 'pharmacy')
+        .eq('status', 'approved');
 
-    const list = (data ?? []).map((p, i) => ({
-      ...p,
-      address: 'الرياض، المملكة العربية السعودية',
-      rating: 4.2 + Math.random() * 0.6,
-      is_open: i % 3 !== 2,
-      distance_km: Math.round((0.5 + Math.random() * 5) * 10) / 10,
-      working_hours: '8:00 ص - 12:00 م',
-      delivers: i % 2 === 0,
-    })) as Pharmacy[];
+      if (fetchErr) throw fetchErr;
 
-    setPharmacies(list);
-    setFiltered(list);
-    setLoading(false);
-    setRefreshing(false);
+      // Map real fields — no random mock data
+      const list = (data ?? []).map(p => ({
+        ...p,
+        address: (p as { address?: string }).address ?? 'المملكة العربية السعودية',
+        working_hours: (p as { working_hours?: string }).working_hours ?? null,
+        is_open: null,
+        delivers: false,
+      })) as Pharmacy[];
+
+      setPharmacies(list);
+      setFiltered(list);
+    } catch {
+      setPharmacies([]);
+      setFiltered([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
 
   useEffect(() => { fetchPharmacies(); }, [fetchPharmacies]);

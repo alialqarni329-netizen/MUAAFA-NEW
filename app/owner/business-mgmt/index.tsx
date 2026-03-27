@@ -39,16 +39,22 @@ export default function OwnerBusinessMgmt() {
   const [filter, setFilter] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
 
   const fetchData = useCallback(async () => {
-    let query = supabase
-      .from('business_registrations')
-      .select('*')
-      .order('created_at', { ascending: false });
+    try {
+      let query = supabase
+        .from('business_registrations')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (filter !== 'all') query = query.eq('status', filter);
-    const { data } = await query;
-    setBusinesses((data ?? []) as Business[]);
-    setLoading(false);
-    setRefreshing(false);
+      if (filter !== 'all') query = query.eq('status', filter);
+      const { data, error: fetchErr } = await query;
+      if (fetchErr) throw fetchErr;
+      setBusinesses((data ?? []) as Business[]);
+    } catch {
+      Alert.alert('خطأ', 'تعذر تحميل المنشآت. يرجى المحاولة مجدداً.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, [filter]);
 
   useEffect(() => { fetchData(); }, [fetchData]);

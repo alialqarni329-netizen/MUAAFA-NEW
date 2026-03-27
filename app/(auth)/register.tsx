@@ -6,6 +6,7 @@ import {
 import { router } from 'expo-router';
 import { User, Mail, Phone, Lock, Eye, EyeOff } from 'lucide-react-native';
 import { supabase } from '@lib/supabase';
+import { registerSchema, getFirstError } from '@lib/validation';
 import { Colors } from '@constants/colors';
 import { Typography } from '@constants/typography';
 import { Layout } from '@constants/layout';
@@ -24,18 +25,19 @@ export default function RegisterScreen() {
   const update = (key: keyof typeof form, value: string) =>
     setForm(prev => ({ ...prev, [key]: value }));
 
-  const validate = () => {
-    if (!form.fullName.trim()) return 'يرجى إدخال الاسم الكامل';
-    if (!form.email.trim() || !form.email.includes('@')) return 'يرجى إدخال بريد إلكتروني صحيح';
-    if (!form.phone.trim() || form.phone.length < 10) return 'يرجى إدخال رقم جوال صحيح';
-    if (form.password.length < 6) return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
-    if (form.password !== form.confirmPassword) return 'كلمتا المرور غير متطابقتين';
-    return null;
-  };
-
   const handleRegister = async () => {
-    const err = validate();
-    if (err) { Alert.alert('خطأ', err); return; }
+    if (form.password !== form.confirmPassword) {
+      Alert.alert('خطأ', 'كلمتا المرور غير متطابقتين');
+      return;
+    }
+    const result = registerSchema.safeParse({
+      fullName: form.fullName.trim(),
+      email: form.email.trim(),
+      phone: form.phone.trim(),
+      password: form.password,
+    });
+    const err = getFirstError(result);
+    if (err) { Alert.alert('خطأ في البيانات', err); return; }
 
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
@@ -67,11 +69,16 @@ export default function RegisterScreen() {
     }
 
     setLoading(false);
-    Alert.alert(
-      'تم التسجيل بنجاح!',
-      'مرحباً بك في مُعافى. يمكنك الآن تسجيل الدخول.',
-      [{ text: 'تسجيل الدخول', onPress: () => router.replace('/(tabs)' as never) }]
-    );
+    // Navigate to OTP verification with the email as a param.
+    // If Supabase email confirmation is disabled, session is created immediately
+    // and the root layout will redirect to the correct portal.
+    if (data.session) {
+      // Email confirmation disabled — user is signed in immediately.
+      router.replace('/(tabs)' as never);
+    } else {
+      // Email confirmation required — go to OTP screen.
+      router.push(`/(auth)/otp?email=${encodeURIComponent(form.email.trim().toLowerCase())}&type=signup` as never);
+    }
   };
 
   const fields = [

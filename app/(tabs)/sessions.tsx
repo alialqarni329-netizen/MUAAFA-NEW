@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Calendar, Clock, Video, MessageCircle, CheckCircle, XCircle, AlertCircle } from 'lucide-react-native';
 import { supabase } from '@lib/supabase';
+import { useRealtime } from '@hooks/useRealtime';
 import { Colors } from '@constants/colors';
 import { Typography } from '@constants/typography';
 import { Layout } from '@constants/layout';
@@ -32,30 +33,41 @@ export default function SessionsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'completed'>('all');
+  const [error, setError] = useState<string | null>(null);
 
   const fetchSessions = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    setError(null);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    let query = supabase
-      .from('medical_sessions')
-      .select('*')
-      .eq('patient_id', user.id)
-      .order('scheduled_at', { ascending: false });
+      let query = supabase
+        .from('medical_sessions')
+        .select('*')
+        .eq('patient_id', user.id)
+        .order('scheduled_at', { ascending: false });
 
-    if (filter === 'upcoming') {
-      query = query.in('status', ['pending', 'confirmed']).gte('scheduled_at', new Date().toISOString());
-    } else if (filter === 'completed') {
-      query = query.eq('status', 'completed');
+      if (filter === 'upcoming') {
+        query = query.in('status', ['pending', 'confirmed']).gte('scheduled_at', new Date().toISOString());
+      } else if (filter === 'completed') {
+        query = query.eq('status', 'completed');
+      }
+
+      const { data, error: fetchErr } = await query;
+      if (fetchErr) throw fetchErr;
+      if (data) setSessions(data as Session[]);
+    } catch {
+      setError('تعذر تحميل الجلسات. يرجى المحاولة مجدداً.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-
-    const { data } = await query;
-    if (data) setSessions(data as Session[]);
-    setLoading(false);
-    setRefreshing(false);
   }, [filter]);
 
   useEffect(() => { fetchSessions(); }, [fetchSessions]);
+
+  // Auto-refresh when own sessions change in real-time
+  useRealtime({ table: 'medical_sessions', onChange: fetchSessions });
 
   const onRefresh = () => { setRefreshing(true); fetchSessions(); };
 
@@ -141,6 +153,14 @@ export default function SessionsScreen() {
 
       {loading ? (
         <ActivityIndicator size="large" color={Colors.primary} style={styles.loader} />
+      ) : error ? (
+        <View style={styles.errorCard}>
+          <AlertCircle size={20} color={Colors.error} />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity onPress={fetchSessions}>
+            <Text style={styles.retryText}>إعادة المحاولة</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <FlatList
           data={sessions}
@@ -180,6 +200,12 @@ const styles = StyleSheet.create({
   filterTextActive: { color: Colors.white, fontWeight: Typography.fontWeight.semibold },
   list: { padding: 12, gap: 10 },
   loader: { marginTop: 40 },
+  errorCard: {
+    margin: 16, backgroundColor: Colors.error + '10', borderRadius: Layout.radius.lg,
+    padding: 16, alignItems: 'center', gap: 8,
+  },
+  errorText: { fontSize: Typography.fontSize.sm, color: Colors.error, textAlign: 'center' },
+  retryText: { fontSize: Typography.fontSize.sm, color: Colors.primary, fontWeight: Typography.fontWeight.semibold },
   card: {
     backgroundColor: Colors.white, borderRadius: Layout.radius.lg,
     padding: 14, ...Layout.shadow.sm,

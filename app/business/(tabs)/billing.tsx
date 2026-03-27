@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, FlatList,
-  StyleSheet, ActivityIndicator, RefreshControl,
+  View, Text, FlatList, TouchableOpacity,
+  StyleSheet, ActivityIndicator, RefreshControl, Alert,
 } from 'react-native';
-import { CheckCircle, Clock, XCircle, FileText } from 'lucide-react-native';
+import { CheckCircle, Clock, XCircle, FileText, AlertCircle } from 'lucide-react-native';
 import { supabase } from '@lib/supabase';
 import { StatusBadge } from '@components/common';
 import { Colors } from '@constants/colors';
@@ -30,33 +30,43 @@ export default function BusinessBilling() {
   const [summary, setSummary] = useState({ total: 0, paid: 0, pending: 0 });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    setError(null);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    const { data: biz } = await supabase
-      .from('business_registrations')
-      .select('id')
-      .eq('owner_id', user.id)
-      .maybeSingle();
-    if (!biz) { setLoading(false); return; }
+      const { data: biz, error: bizErr } = await supabase
+        .from('business_registrations')
+        .select('id')
+        .eq('owner_id', user.id)
+        .maybeSingle();
+      if (bizErr) throw bizErr;
+      if (!biz) { setLoading(false); return; }
 
-    const { data } = await supabase
-      .from('payment_transactions')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(50);
+      const { data, error: fetchErr } = await supabase
+        .from('payment_transactions')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
 
-    const list = (data ?? []) as Invoice[];
-    setInvoices(list);
-    setSummary({
-      total: list.reduce((s, i) => s + i.amount, 0),
-      paid: list.filter(i => i.status === 'paid').reduce((s, i) => s + i.amount, 0),
-      pending: list.filter(i => i.status === 'pending').reduce((s, i) => s + i.amount, 0),
-    });
-    setLoading(false);
-    setRefreshing(false);
+      if (fetchErr) throw fetchErr;
+
+      const list = (data ?? []) as Invoice[];
+      setInvoices(list);
+      setSummary({
+        total: list.reduce((s, i) => s + i.amount, 0),
+        paid: list.filter(i => i.status === 'paid').reduce((s, i) => s + i.amount, 0),
+        pending: list.filter(i => i.status === 'pending').reduce((s, i) => s + i.amount, 0),
+      });
+    } catch {
+      setError('تعذر تحميل بيانات المدفوعات. يرجى المحاولة مجدداً.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
@@ -86,6 +96,18 @@ export default function BusinessBilling() {
 
   if (loading) {
     return <ActivityIndicator size="large" color={Colors.business} style={{ flex: 1, marginTop: 100 }} />;
+  }
+
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <AlertCircle size={24} color={Colors.error} />
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity onPress={fetchData}>
+          <Text style={styles.retryText}>إعادة المحاولة</Text>
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   return (
@@ -154,4 +176,9 @@ const styles = StyleSheet.create({
   invoiceAmount: { fontSize: Typography.fontSize.md, fontWeight: Typography.fontWeight.bold, color: Colors.textPrimary },
   empty: { alignItems: 'center', paddingTop: 60, gap: 12 },
   emptyText: { fontSize: Typography.fontSize.md, color: Colors.textMuted },
+  errorContainer: {
+    flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12, padding: 32,
+  },
+  errorText: { fontSize: Typography.fontSize.sm, color: Colors.error, textAlign: 'center' },
+  retryText: { fontSize: Typography.fontSize.sm, color: Colors.primary, fontWeight: Typography.fontWeight.semibold },
 });

@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { LayoutDashboard, Users, BarChart2, Wallet, Settings } from 'lucide-react-native';
+import { LayoutDashboard, Users, BarChart2, Wallet, Settings, UserCog } from 'lucide-react-native';
 import { Colors } from '@constants/colors';
 
 export default function BusinessTabsLayout() {
@@ -43,6 +43,13 @@ export default function BusinessTabsLayout() {
         options={{
           title: 'المدفوعات',
           tabBarIcon: ({ color, size }) => <Wallet size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="employees"
+        options={{
+          title: 'الموظفون',
+          tabBarIcon: ({ color, size }) => <UserCog size={size} color={color} />,
         }}
       />
       <Tabs.Screen

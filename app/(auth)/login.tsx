@@ -6,6 +6,7 @@ import {
 import { router } from 'expo-router';
 import { Mail, Lock, Eye, EyeOff, Heart } from 'lucide-react-native';
 import { supabase } from '@lib/supabase';
+import { loginSchema, getFirstError } from '@lib/validation';
 import { Colors } from '@constants/colors';
 import { Typography } from '@constants/typography';
 import { Layout } from '@constants/layout';
@@ -17,10 +18,9 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    if (!email.trim() || !password) {
-      Alert.alert('خطأ', 'يرجى إدخال البريد الإلكتروني وكلمة المرور');
-      return;
-    }
+    const result = loginSchema.safeParse({ email: email.trim(), password });
+    const err = getFirstError(result);
+    if (err) { Alert.alert('خطأ في البيانات', err); return; }
     setLoading(true);
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),

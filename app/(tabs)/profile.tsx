@@ -37,15 +37,21 @@ export default function ProfileScreen() {
   }, []);
 
   const loadProfile = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data } = await supabase
-      .from('users')
-      .select('id, full_name, phone')
-      .eq('id', user.id)
-      .maybeSingle();
-    setProfile({ ...(data as UserProfile), email: user.email });
-    setLoading(false);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data, error: fetchErr } = await supabase
+        .from('users')
+        .select('id, full_name, phone')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (fetchErr) throw fetchErr;
+      setProfile({ ...(data as UserProfile), email: user.email });
+    } catch {
+      Alert.alert('خطأ', 'تعذر تحميل بيانات الملف الشخصي.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogout = () => {
@@ -61,6 +67,9 @@ export default function ProfileScreen() {
     ]);
   };
 
+  const comingSoon = (label: string) =>
+    Alert.alert('قريباً', `ميزة "${label}" ستكون متاحة في التحديث القادم.`);
+
   const menuSections: { title: string; items: MenuItem[] }[] = [
     {
       title: 'حسابي',
@@ -69,19 +78,19 @@ export default function ProfileScreen() {
           label: 'معلوماتي الشخصية',
           icon: <User size={18} color={Colors.primary} />,
           color: Colors.primary,
-          onPress: () => {},
+          onPress: () => router.push('/(auth)/register' as never),
         },
         {
           label: 'ملفي الصحي',
           icon: <Heart size={18} color={Colors.error} />,
           color: Colors.error,
-          onPress: () => {},
+          onPress: () => comingSoon('ملفي الصحي'),
         },
         {
           label: 'محفظتي الصحية (التأمين)',
           icon: <Wallet size={18} color={Colors.success} />,
           color: Colors.success,
-          onPress: () => {},
+          onPress: () => comingSoon('محفظتي الصحية'),
         },
       ],
     },
@@ -92,13 +101,13 @@ export default function ProfileScreen() {
           label: 'تقاريري الطبية',
           icon: <FileText size={18} color={Colors.info} />,
           color: Colors.info,
-          onPress: () => {},
+          onPress: () => router.push('/(tabs)/sessions' as never),
         },
         {
           label: 'الإشعارات',
           icon: <Bell size={18} color={Colors.warning} />,
           color: Colors.warning,
-          onPress: () => {},
+          onPress: () => comingSoon('الإشعارات'),
         },
       ],
     },
@@ -109,13 +118,13 @@ export default function ProfileScreen() {
           label: 'الأمان والخصوصية',
           icon: <Shield size={18} color={Colors.textSecondary} />,
           color: Colors.textSecondary,
-          onPress: () => {},
+          onPress: () => comingSoon('الأمان والخصوصية'),
         },
         {
           label: 'الإعدادات العامة',
           icon: <Settings size={18} color={Colors.textSecondary} />,
           color: Colors.textSecondary,
-          onPress: () => {},
+          onPress: () => comingSoon('الإعدادات العامة'),
         },
       ],
     },

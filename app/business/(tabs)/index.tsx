@@ -6,6 +6,7 @@ import {
 import { Users, DollarSign, Calendar, TrendingUp } from 'lucide-react-native';
 import { supabase } from '@lib/supabase';
 import { KPICard } from '@components/common';
+import { useRealtime } from '@hooks/useRealtime';
 import { Colors } from '@constants/colors';
 import { Typography } from '@constants/typography';
 import { Layout } from '@constants/layout';
@@ -24,45 +25,57 @@ export default function BusinessDashboard() {
   const [businessName, setBusinessName] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    setError(null);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    const { data: biz } = await supabase
-      .from('business_registrations')
-      .select('id, business_name')
-      .eq('owner_id', user.id)
-      .eq('status', 'approved')
-      .maybeSingle();
+      const { data: biz, error: bizErr } = await supabase
+        .from('business_registrations')
+        .select('id, business_name')
+        .eq('owner_id', user.id)
+        .eq('status', 'approved')
+        .maybeSingle();
 
-    if (!biz) { setLoading(false); return; }
-    setBusinessName(biz.business_name);
+      if (bizErr) throw bizErr;
+      if (!biz) { setLoading(false); return; }
+      setBusinessName(biz.business_name);
 
-    const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString().split('T')[0];
 
-    const [sessRes, revRes, empRes, todayRes] = await Promise.all([
-      supabase.from('medical_sessions').select('id, status', { count: 'exact' }).eq('business_id', biz.id),
-      supabase.from('payment_transactions').select('amount').eq('reference_type', 'medical_session').eq('status', 'paid'),
-      supabase.from('business_employees').select('id', { count: 'exact' }).eq('business_id', biz.id),
-      supabase.from('medical_sessions').select('id', { count: 'exact' }).eq('business_id', biz.id).gte('scheduled_at', today),
-    ]);
+      const [sessRes, revRes, empRes, todayRes] = await Promise.all([
+        supabase.from('medical_sessions').select('id, status', { count: 'exact' }).eq('business_id', biz.id),
+        supabase.from('payment_transactions').select('amount').eq('reference_type', 'medical_session').eq('status', 'paid'),
+        supabase.from('business_employees').select('id', { count: 'exact' }).eq('business_id', biz.id),
+        supabase.from('medical_sessions').select('id', { count: 'exact' }).eq('business_id', biz.id).gte('scheduled_at', today),
+      ]);
 
-    const revenue = (revRes.data ?? []).reduce((sum, t) => sum + (t.amount ?? 0), 0);
+      const revenue = (revRes.data ?? []).reduce((sum, t) => sum + (t.amount ?? 0), 0);
 
-    setStats({
-      totalSessions: sessRes.count ?? 0,
-      confirmedSessions: (sessRes.data ?? []).filter(s => s.status === 'confirmed').length,
-      totalRevenue: revenue,
-      pendingPayments: (sessRes.data ?? []).filter(s => s.status === 'pending').length,
-      totalEmployees: empRes.count ?? 0,
-      todayAppointments: todayRes.count ?? 0,
-    });
-    setLoading(false);
-    setRefreshing(false);
+      setStats({
+        totalSessions: sessRes.count ?? 0,
+        confirmedSessions: (sessRes.data ?? []).filter(s => s.status === 'confirmed').length,
+        totalRevenue: revenue,
+        pendingPayments: (sessRes.data ?? []).filter(s => s.status === 'pending').length,
+        totalEmployees: empRes.count ?? 0,
+        todayAppointments: todayRes.count ?? 0,
+      });
+    } catch {
+      setError('تعذر تحميل بيانات لوحة التحكم. يرجى المحاولة مجدداً.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Auto-refresh KPIs whenever sessions or payments change
+  useRealtime({ table: 'medical_sessions', onChange: fetchData });
+  useRealtime({ table: 'payment_transactions', onChange: fetchData });
 
   if (loading) {
     return <ActivityIndicator size="large" color={Colors.business} style={{ flex: 1, marginTop: 100 }} />;

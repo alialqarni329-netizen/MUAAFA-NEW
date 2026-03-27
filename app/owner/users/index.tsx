@@ -28,20 +28,26 @@ export default function OwnerUsers() {
   const [filter, setFilter] = useState<'all' | 'active' | 'suspended'>('all');
 
   const fetchUsers = useCallback(async () => {
-    let query = supabase
-      .from('users')
-      .select('id, full_name, phone, role, status, created_at')
-      .order('created_at', { ascending: false })
-      .limit(100);
+    try {
+      let query = supabase
+        .from('users')
+        .select('id, full_name, phone, role, status, created_at')
+        .order('created_at', { ascending: false })
+        .limit(100);
 
-    if (filter === 'active') query = query.eq('status', 'active');
-    else if (filter === 'suspended') query = query.eq('status', 'suspended');
+      if (filter === 'active') query = query.eq('status', 'active');
+      else if (filter === 'suspended') query = query.eq('status', 'suspended');
 
-    const { data } = await query;
-    setUsers((data ?? []) as AppUser[]);
-    setFiltered((data ?? []) as AppUser[]);
-    setLoading(false);
-    setRefreshing(false);
+      const { data, error: fetchErr } = await query;
+      if (fetchErr) throw fetchErr;
+      setUsers((data ?? []) as AppUser[]);
+      setFiltered((data ?? []) as AppUser[]);
+    } catch {
+      Alert.alert('خطأ', 'تعذر تحميل المستخدمين. يرجى المحاولة مجدداً.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, [filter]);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);

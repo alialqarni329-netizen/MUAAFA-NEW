@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, ActivityIndicator, RefreshControl,
+  StyleSheet, ActivityIndicator, RefreshControl, Alert,
 } from 'react-native';
+import { AlertCircle } from 'lucide-react-native';
 import { Activity, Heart, Footprints, Flame, TrendingUp, Plus } from 'lucide-react-native';
 import { supabase } from '@lib/supabase';
 import { Colors } from '@constants/colors';
@@ -34,30 +35,41 @@ export default function FitnessScreen() {
   const [history, setHistory] = useState<HealthScan[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const today = new Date().toISOString().split('T')[0];
+    setError(null);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const today = new Date().toISOString().split('T')[0];
 
-    const { data: todayData } = await supabase
-      .from('health_scans')
-      .select('*')
-      .eq('user_id', user.id)
-      .gte('scan_date', today)
-      .maybeSingle();
+      const { data: todayData, error: e1 } = await supabase
+        .from('health_scans')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('scan_date', today)
+        .maybeSingle();
 
-    const { data: histData } = await supabase
-      .from('health_scans')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('scan_date', { ascending: false })
-      .limit(7);
+      if (e1) throw e1;
 
-    setTodayScan(todayData as HealthScan | null);
-    setHistory((histData ?? []) as HealthScan[]);
-    setLoading(false);
-    setRefreshing(false);
+      const { data: histData, error: e2 } = await supabase
+        .from('health_scans')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('scan_date', { ascending: false })
+        .limit(7);
+
+      if (e2) throw e2;
+
+      setTodayScan(todayData as HealthScan | null);
+      setHistory((histData ?? []) as HealthScan[]);
+    } catch {
+      setError('تعذر تحميل بيانات اللياقة. يرجى المحاولة مجدداً.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
@@ -121,7 +133,15 @@ export default function FitnessScreen() {
         </TouchableOpacity>
       </View>
 
-      {todayScan ? (
+      {error ? (
+        <View style={styles.errorCard}>
+          <AlertCircle size={20} color={Colors.error} />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity onPress={fetchData}>
+            <Text style={styles.retryText}>إعادة المحاولة</Text>
+          </TouchableOpacity>
+        </View>
+      ) : todayScan ? (
         <View style={styles.metricsGrid}>
           {metrics.map((m, i) => (
             <View key={i} style={styles.metricCard}>
@@ -135,7 +155,7 @@ export default function FitnessScreen() {
             </View>
           ))}
         </View>
-      ) : (
+      ) : !(error) ? (
         <View style={styles.noDataCard}>
           <Activity size={48} color={Colors.textMuted} />
           <Text style={styles.noDataText}>لم تسجل بيانات اليوم بعد</Text>
@@ -199,6 +219,12 @@ const styles = StyleSheet.create({
   metricValue: { fontSize: Typography.fontSize.xl, fontWeight: Typography.fontWeight.bold, color: Colors.textPrimary },
   metricUnit: { fontSize: Typography.fontSize.xs, color: Colors.textMuted },
   metricLabel: { fontSize: Typography.fontSize.sm, color: Colors.textSecondary, marginTop: 4 },
+  errorCard: {
+    margin: 16, backgroundColor: Colors.error + '10', borderRadius: Layout.radius.lg,
+    padding: 16, alignItems: 'center', gap: 8,
+  },
+  errorText: { fontSize: Typography.fontSize.sm, color: Colors.error, textAlign: 'center' },
+  retryText: { fontSize: Typography.fontSize.sm, color: Colors.primary, fontWeight: Typography.fontWeight.semibold },
   progressBar: {
     width: '100%', height: 4, backgroundColor: Colors.divider, borderRadius: 2, marginTop: 8, overflow: 'hidden',
   },
