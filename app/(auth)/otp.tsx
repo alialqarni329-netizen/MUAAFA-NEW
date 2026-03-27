@@ -29,7 +29,9 @@ export default function OtpScreen() {
     return () => clearInterval(id);
   }, [resendTimer]);
 
-  const handleChange = (value: string, index: number) => {
+  const handleChange = (value: string | undefined, index: number) => {
+    // Guard against null/undefined — Hermes GC crash if .replace() is called on non-string
+    if (typeof value !== 'string') return;
     const clean = value.replace(/[^0-9]/g, '').slice(-1);
     const updated = [...otp];
     updated[index] = clean;
