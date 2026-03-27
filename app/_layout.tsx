@@ -4,12 +4,16 @@ import { StatusBar } from 'expo-status-bar';
 import { Platform } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { supabase } from '@lib/supabase';
-import { resolveUserPortal, PORTAL_HOME } from '@lib/authGuard';
+import { resolveUserPortal, isEmailConfirmed, PORTAL_HOME } from '@lib/authGuard';
 import { ErrorBoundary } from '@components/common';
 import { useNotifications } from '@hooks/useNotifications';
 import { ThemeProvider } from '../contexts/ThemeContext';
 
 SplashScreen.preventAutoHideAsync();
+
+// Maximum time (ms) to wait for Supabase session check before redirecting to welcome.
+// Prevents the user from being stuck on a blank screen if the network is slow.
+const BOOTSTRAP_TIMEOUT_MS = 8000;
 
 export default function RootLayout() {
   // Register push token and set up notification listeners app-wide.
@@ -18,16 +22,38 @@ export default function RootLayout() {
   useEffect(() => {
     // ── Initial session check ──────────────────────────────────────────────
     // Redirect returning users to their correct portal without showing the
-    // welcome screen.
+    // welcome screen. A timeout ensures we never leave the user on a blank screen.
     const bootstrap = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const portal = await resolveUserPortal(session.user.id);
-        router.replace(PORTAL_HOME[portal] as never);
-      } else {
+      // Safety timeout — if Supabase takes too long, send user to welcome
+      const timeoutId = setTimeout(() => {
+        console.warn('[bootstrap] Supabase session check timed out, redirecting to welcome');
         router.replace('/(auth)/welcome' as never);
+        SplashScreen.hideAsync();
+      }, BOOTSTRAP_TIMEOUT_MS);
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        clearTimeout(timeoutId);
+
+        if (session?.user) {
+          // Block unconfirmed emails — send back to OTP screen
+          if (!isEmailConfirmed(session.user)) {
+            const encodedEmail = encodeURIComponent(session.user.email ?? '');
+            router.replace(`/(auth)/otp?email=${encodedEmail}&type=signup` as never);
+          } else {
+            const portal = await resolveUserPortal(session.user.id);
+            router.replace(PORTAL_HOME[portal] as never);
+          }
+        } else {
+          router.replace('/(auth)/welcome' as never);
+        }
+      } catch {
+        clearTimeout(timeoutId);
+        console.warn('[bootstrap] Session check failed, redirecting to welcome');
+        router.replace('/(auth)/welcome' as never);
+      } finally {
+        SplashScreen.hideAsync();
       }
-      SplashScreen.hideAsync();
     };
 
     bootstrap();
@@ -41,6 +67,12 @@ export default function RootLayout() {
           return;
         }
         if (event === 'SIGNED_IN' && session.user) {
+          // Block unconfirmed emails — keep on OTP screen until verified
+          if (!isEmailConfirmed(session.user)) {
+            const encodedEmail = encodeURIComponent(session.user.email ?? '');
+            router.replace(`/(auth)/otp?email=${encodedEmail}&type=signup` as never);
+            return;
+          }
           const portal = await resolveUserPortal(session.user.id);
           router.replace(PORTAL_HOME[portal] as never);
         }

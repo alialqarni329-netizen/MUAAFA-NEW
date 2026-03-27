@@ -3,7 +3,7 @@ import {
   View, Text, FlatList, TouchableOpacity, TextInput,
   StyleSheet, ActivityIndicator, RefreshControl,
 } from 'react-native';
-import { Search, MapPin, Clock, Phone, ShoppingCart, Star } from 'lucide-react-native';
+import { Search, MapPin, Clock, Phone, ShoppingCart, Star, AlertCircle } from 'lucide-react-native';
 import { supabase } from '@lib/supabase';
 import { Colors } from '@constants/colors';
 import { Typography } from '@constants/typography';
@@ -27,8 +27,10 @@ export default function PharmaciesScreen() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchPharmacies = useCallback(async () => {
+    setError(null);
     try {
       const { data, error: fetchErr } = await supabase
         .from('business_registrations')
@@ -50,6 +52,7 @@ export default function PharmaciesScreen() {
       setPharmacies(list);
       setFiltered(list);
     } catch {
+      setError('تعذر تحميل قائمة الصيدليات. يرجى المحاولة مجدداً.');
       setPharmacies([]);
       setFiltered([]);
     } finally {
@@ -135,6 +138,14 @@ export default function PharmaciesScreen() {
 
       {loading ? (
         <ActivityIndicator size="large" color={Colors.primary} style={styles.loader} />
+      ) : error ? (
+        <View style={styles.errorCard}>
+          <AlertCircle size={32} color={Colors.error} />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={() => { setLoading(true); fetchPharmacies(); }}>
+            <Text style={styles.retryText}>إعادة المحاولة</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <FlatList
           data={filtered}
@@ -197,4 +208,14 @@ const styles = StyleSheet.create({
   orderText: { fontSize: 12, color: '#fff', fontWeight: Typography.fontWeight.semibold },
   empty: { alignItems: 'center', paddingTop: 60 },
   emptyText: { fontSize: Typography.fontSize.md, color: Colors.textMuted },
+  errorCard: {
+    flex: 1, margin: 20, backgroundColor: Colors.white, borderRadius: Layout.radius.xl,
+    padding: 28, alignItems: 'center', gap: 12, ...Layout.shadow.sm,
+  },
+  errorText: { fontSize: Typography.fontSize.sm, color: Colors.textSecondary, textAlign: 'center' },
+  retryBtn: {
+    backgroundColor: Colors.primary, borderRadius: Layout.radius.lg,
+    paddingVertical: 10, paddingHorizontal: 28, marginTop: 4,
+  },
+  retryText: { color: '#fff', fontWeight: Typography.fontWeight.semibold, fontSize: Typography.fontSize.sm },
 });

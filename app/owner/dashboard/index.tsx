@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import {
   Users, Building2, DollarSign, TrendingUp,
-  Activity, AlertTriangle, CheckCircle, Clock,
+  Activity, AlertTriangle, CheckCircle, Clock, AlertCircle,
 } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { supabase } from '@lib/supabase';
@@ -29,43 +29,70 @@ export default function OwnerDashboard() {
   const [stats, setStats] = useState<OwnerStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchStats = useCallback(async () => {
-    const today = new Date().toISOString().split('T')[0];
-    const thisMonth = new Date(); thisMonth.setDate(1);
+    setError(null);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const thisMonth = new Date(); thisMonth.setDate(1);
 
-    const [usersRes, bizRes, pendingRes, revRes, monthRevRes, sessRes] = await Promise.all([
-      supabase.from('users').select('id, created_at', { count: 'exact' }),
-      supabase.from('business_registrations').select('id', { count: 'exact' }),
-      supabase.from('business_registrations').select('id', { count: 'exact' }).eq('status', 'pending'),
-      supabase.from('payment_transactions').select('amount').eq('status', 'paid'),
-      supabase.from('payment_transactions').select('amount').eq('status', 'paid').gte('created_at', thisMonth.toISOString()),
-      supabase.from('medical_sessions').select('id', { count: 'exact' }),
-    ]);
+      const [usersRes, bizRes, pendingRes, revRes, monthRevRes, sessRes] = await Promise.all([
+        supabase.from('users').select('id, created_at', { count: 'exact' }),
+        supabase.from('business_registrations').select('id', { count: 'exact' }),
+        supabase.from('business_registrations').select('id', { count: 'exact' }).eq('status', 'pending'),
+        supabase.from('payment_transactions').select('amount').eq('status', 'paid'),
+        supabase.from('payment_transactions').select('amount').eq('status', 'paid').gte('created_at', thisMonth.toISOString()),
+        supabase.from('medical_sessions').select('id', { count: 'exact' }),
+      ]);
 
-    const users = usersRes.data ?? [];
-    const newToday = users.filter(u => u.created_at?.startsWith(today)).length;
-    const totalRev = (revRes.data ?? []).reduce((s, t) => s + (t.amount ?? 0), 0);
-    const monthRev = (monthRevRes.data ?? []).reduce((s, t) => s + (t.amount ?? 0), 0);
+      // Throw on any DB error so the catch block can handle it uniformly
+      if (usersRes.error) throw usersRes.error;
+      if (bizRes.error) throw bizRes.error;
 
-    setStats({
-      totalUsers: usersRes.count ?? 0,
-      newUsersToday: newToday,
-      totalBusinesses: bizRes.count ?? 0,
-      pendingApprovals: pendingRes.count ?? 0,
-      totalRevenue: totalRev,
-      monthlyRevenue: monthRev,
-      activeSubscriptions: 0,
-      totalSessions: sessRes.count ?? 0,
-    });
-    setLoading(false);
-    setRefreshing(false);
+      const users = usersRes.data ?? [];
+      const newToday = users.filter(u => u.created_at?.startsWith(today)).length;
+      const totalRev = (revRes.data ?? []).reduce((s, t) => s + (t.amount ?? 0), 0);
+      const monthRev = (monthRevRes.data ?? []).reduce((s, t) => s + (t.amount ?? 0), 0);
+
+      setStats({
+        totalUsers: usersRes.count ?? 0,
+        newUsersToday: newToday,
+        totalBusinesses: bizRes.count ?? 0,
+        pendingApprovals: pendingRes.count ?? 0,
+        totalRevenue: totalRev,
+        monthlyRevenue: monthRev,
+        activeSubscriptions: 0,
+        totalSessions: sessRes.count ?? 0,
+      });
+    } catch {
+      setError('تعذر تحميل بيانات لوحة التحكم. يرجى المحاولة مجدداً.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
 
   useEffect(() => { fetchStats(); }, [fetchStats]);
 
   if (loading) {
     return <ActivityIndicator size="large" color={Colors.owner} style={{ flex: 1, marginTop: 100 }} />;
+  }
+
+  // ── Error state ──────────────────────────────────────────────────────────
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <View style={styles.errorCard}>
+          <AlertCircle size={36} color={Colors.error} />
+          <Text style={styles.errorTitle}>خطأ في تحميل البيانات</Text>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={() => { setLoading(true); fetchStats(); }}>
+            <Text style={styles.retryText}>إعادة المحاولة</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
   }
 
   const kpis = stats
@@ -176,4 +203,17 @@ const styles = StyleSheet.create({
   navLabel: { flex: 1, fontSize: Typography.fontSize.sm, color: Colors.textPrimary },
   navBadge: { backgroundColor: Colors.error, paddingHorizontal: 7, paddingVertical: 2, borderRadius: Layout.radius.full },
   navBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
+  // Error state
+  errorContainer: { flex: 1, backgroundColor: Colors.background, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  errorCard: {
+    backgroundColor: Colors.white, borderRadius: Layout.radius.xl, padding: 28,
+    alignItems: 'center', gap: 12, width: '100%', ...Layout.shadow.md,
+  },
+  errorTitle: { fontSize: Typography.fontSize.lg, fontWeight: Typography.fontWeight.bold, color: Colors.textPrimary },
+  errorText: { fontSize: Typography.fontSize.sm, color: Colors.textSecondary, textAlign: 'center', lineHeight: 20 },
+  retryBtn: {
+    backgroundColor: Colors.owner, borderRadius: Layout.radius.lg,
+    paddingVertical: 12, paddingHorizontal: 32, marginTop: 4,
+  },
+  retryText: { color: '#fff', fontWeight: Typography.fontWeight.semibold, fontSize: Typography.fontSize.sm },
 });

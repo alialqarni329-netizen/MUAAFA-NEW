@@ -46,6 +46,10 @@ export default function BusinessBilling() {
       if (bizErr) throw bizErr;
       if (!biz) { setLoading(false); return; }
 
+      // TODO [PAYMENT GATEWAY]: Replace this read-only query with real payment provider data.
+      // Integration point: Stripe / Moyasar / HyperPay SDK should call its own API here,
+      // then sync the result back to payment_transactions via a Supabase Edge Function.
+      // See: supabase/functions/payment-webhook/ (to be created in Phase 2)
       const { data, error: fetchErr } = await supabase
         .from('payment_transactions')
         .select('*')
@@ -130,6 +134,10 @@ export default function BusinessBilling() {
         ))}
       </View>
 
+      {/* TODO [PAYMENT GATEWAY]: Add "دفع الآن" button here once Moyasar/Stripe is integrated.
+          The button should call: POST /functions/v1/create-payment-intent with { amount, businessId }
+          Then open the payment gateway WebView/SDK flow.
+          On success: update payment_transactions.status = 'paid' via the webhook. */}
       <FlatList
         data={invoices}
         keyExtractor={item => item.id}

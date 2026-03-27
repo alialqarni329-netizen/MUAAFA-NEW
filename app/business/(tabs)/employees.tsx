@@ -4,7 +4,7 @@ import {
   TouchableOpacity, ActivityIndicator, RefreshControl,
   Alert, TextInput, Modal,
 } from 'react-native';
-import { UserPlus, Search, Phone, Mail, User, X } from 'lucide-react-native';
+import { UserPlus, Search, Phone, Mail, User, X, AlertCircle } from 'lucide-react-native';
 import { supabase } from '@lib/supabase';
 import { Colors } from '@constants/colors';
 import { Typography } from '@constants/typography';
@@ -47,31 +47,41 @@ export default function BusinessEmployees() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addForm, setAddForm] = useState({ full_name: '', email: '', phone: '', role: 'doctor' as EmployeeRole });
   const [adding, setAdding] = useState(false);
 
   const fetchEmployees = useCallback(async () => {
-    const { data: session } = await supabase.auth.getSession();
-    if (!session.session) { setLoading(false); return; }
+    setError(null);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) { setLoading(false); return; }
 
-    const { data: biz } = await supabase
-      .from('business_registrations')
-      .select('id')
-      .eq('owner_id', session.session.user.id)
-      .maybeSingle();
+      const { data: biz, error: bizErr } = await supabase
+        .from('business_registrations')
+        .select('id')
+        .eq('owner_id', session.session.user.id)
+        .maybeSingle();
 
-    if (!biz) { setLoading(false); setRefreshing(false); return; }
+      if (bizErr) throw bizErr;
+      if (!biz) { setLoading(false); setRefreshing(false); return; }
 
-    const { data } = await supabase
-      .from('business_employees')
-      .select('*')
-      .eq('business_id', biz.id)
-      .order('created_at', { ascending: false });
+      const { data, error: empErr } = await supabase
+        .from('business_employees')
+        .select('*')
+        .eq('business_id', biz.id)
+        .order('created_at', { ascending: false });
 
-    setEmployees((data as Employee[]) ?? []);
-    setLoading(false);
-    setRefreshing(false);
+      if (empErr) throw empErr;
+
+      setEmployees((data as Employee[]) ?? []);
+    } catch {
+      setError('تعذر تحميل بيانات الموظفين. يرجى المحاولة مجدداً.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
 
   useEffect(() => { fetchEmployees(); }, [fetchEmployees]);
@@ -210,6 +220,14 @@ export default function BusinessEmployees() {
       {/* List */}
       {loading ? (
         <ActivityIndicator size="large" color={Colors.business} style={{ marginTop: 40 }} />
+      ) : error ? (
+        <View style={styles.errorCard}>
+          <AlertCircle size={32} color={Colors.error} />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={() => { setLoading(true); fetchEmployees(); }}>
+            <Text style={styles.retryBtnText}>إعادة المحاولة</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <FlatList
           data={filtered}
@@ -319,6 +337,16 @@ const styles = StyleSheet.create({
   statusBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
   statusText: { fontSize: Typography.fontSize.xs, fontWeight: Typography.fontWeight.semibold },
   empty: { textAlign: 'center', color: Colors.textMuted, marginTop: 40, fontSize: Typography.fontSize.sm },
+  errorCard: {
+    margin: 20, backgroundColor: Colors.white, borderRadius: Layout.radius.xl,
+    padding: 28, alignItems: 'center', gap: 12, ...Layout.shadow.sm,
+  },
+  errorText: { fontSize: Typography.fontSize.sm, color: Colors.textSecondary, textAlign: 'center' },
+  retryBtn: {
+    backgroundColor: Colors.business, borderRadius: Layout.radius.lg,
+    paddingVertical: 10, paddingHorizontal: 28, marginTop: 4,
+  },
+  retryBtnText: { color: '#fff', fontWeight: Typography.fontWeight.semibold, fontSize: Typography.fontSize.sm },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalCard: {
     backgroundColor: Colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24,

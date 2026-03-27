@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet,
-  ActivityIndicator, RefreshControl,
+  ActivityIndicator, RefreshControl, TouchableOpacity,
 } from 'react-native';
-import { TrendingUp, Users, DollarSign, Activity, BarChart2 } from 'lucide-react-native';
+import { TrendingUp, Users, DollarSign, Activity, BarChart2, AlertCircle } from 'lucide-react-native';
 import { supabase } from '@lib/supabase';
 import { Colors } from '@constants/colors';
 import { Typography } from '@constants/typography';
@@ -26,46 +26,70 @@ export default function OwnerAnalytics() {
   const [data, setData] = useState<PlatformAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
-    const thisMonth = new Date(); thisMonth.setDate(1);
+    setError(null);
+    try {
+      const thisMonth = new Date(); thisMonth.setDate(1);
 
-    const [usersAll, usersMonth, revAll, revMonth, sessAll, sessMonth, bizAll, bizApproved, chats] =
-      await Promise.all([
-        supabase.from('users').select('id', { count: 'exact' }),
-        supabase.from('users').select('id', { count: 'exact' }).gte('created_at', thisMonth.toISOString()),
-        supabase.from('payment_transactions').select('amount').eq('status', 'paid'),
-        supabase.from('payment_transactions').select('amount').eq('status', 'paid').gte('created_at', thisMonth.toISOString()),
-        supabase.from('medical_sessions').select('id', { count: 'exact' }),
-        supabase.from('medical_sessions').select('id', { count: 'exact' }).gte('created_at', thisMonth.toISOString()),
-        supabase.from('business_registrations').select('id', { count: 'exact' }),
-        supabase.from('business_registrations').select('id', { count: 'exact' }).eq('status', 'approved'),
-        supabase.from('chat_messages').select('id', { count: 'exact' }),
-      ]);
+      const [usersAll, usersMonth, revAll, revMonth, sessAll, sessMonth, bizAll, bizApproved, chats] =
+        await Promise.all([
+          supabase.from('users').select('id', { count: 'exact' }),
+          supabase.from('users').select('id', { count: 'exact' }).gte('created_at', thisMonth.toISOString()),
+          supabase.from('payment_transactions').select('amount').eq('status', 'paid'),
+          supabase.from('payment_transactions').select('amount').eq('status', 'paid').gte('created_at', thisMonth.toISOString()),
+          supabase.from('medical_sessions').select('id', { count: 'exact' }),
+          supabase.from('medical_sessions').select('id', { count: 'exact' }).gte('created_at', thisMonth.toISOString()),
+          supabase.from('business_registrations').select('id', { count: 'exact' }),
+          supabase.from('business_registrations').select('id', { count: 'exact' }).eq('status', 'approved'),
+          supabase.from('chat_messages').select('id', { count: 'exact' }),
+        ]);
 
-    const totalRev = (revAll.data ?? []).reduce((s, t) => s + (t.amount ?? 0), 0);
-    const monthRev = (revMonth.data ?? []).reduce((s, t) => s + (t.amount ?? 0), 0);
+      if (usersAll.error) throw usersAll.error;
 
-    setData({
-      totalUsers: usersAll.count ?? 0,
-      newUsersThisMonth: usersMonth.count ?? 0,
-      totalRevenue: totalRev,
-      revenueThisMonth: monthRev,
-      totalSessions: sessAll.count ?? 0,
-      sessionsThisMonth: sessMonth.count ?? 0,
-      totalBusinesses: bizAll.count ?? 0,
-      approvedBusinesses: bizApproved.count ?? 0,
-      chatMessages: chats.count ?? 0,
-      avgSessionValue: (sessAll.count ?? 0) > 0 ? totalRev / (sessAll.count ?? 1) : 0,
-    });
-    setLoading(false);
-    setRefreshing(false);
+      const totalRev = (revAll.data ?? []).reduce((s, t) => s + (t.amount ?? 0), 0);
+      const monthRev = (revMonth.data ?? []).reduce((s, t) => s + (t.amount ?? 0), 0);
+
+      setData({
+        totalUsers: usersAll.count ?? 0,
+        newUsersThisMonth: usersMonth.count ?? 0,
+        totalRevenue: totalRev,
+        revenueThisMonth: monthRev,
+        totalSessions: sessAll.count ?? 0,
+        sessionsThisMonth: sessMonth.count ?? 0,
+        totalBusinesses: bizAll.count ?? 0,
+        approvedBusinesses: bizApproved.count ?? 0,
+        chatMessages: chats.count ?? 0,
+        avgSessionValue: (sessAll.count ?? 0) > 0 ? totalRev / (sessAll.count ?? 1) : 0,
+      });
+    } catch {
+      setError('تعذر تحميل بيانات التحليلات. يرجى المحاولة مجدداً.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   if (loading) {
     return <ActivityIndicator size="large" color={Colors.success} style={{ flex: 1, marginTop: 100 }} />;
+  }
+
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <View style={styles.errorCard}>
+          <AlertCircle size={36} color={Colors.error} />
+          <Text style={styles.errorTitle}>خطأ في تحميل البيانات</Text>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={() => { setLoading(true); fetchData(); }}>
+            <Text style={styles.retryText}>إعادة المحاولة</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
   }
 
   const sections = [
@@ -159,4 +183,16 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: Typography.fontSize.sm, color: Colors.textSecondary },
   statValue: { fontSize: Typography.fontSize.md, fontWeight: Typography.fontWeight.bold },
   divider: { height: 1, backgroundColor: Colors.divider, marginHorizontal: 16 },
+  errorContainer: { flex: 1, backgroundColor: Colors.background, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  errorCard: {
+    backgroundColor: Colors.white, borderRadius: Layout.radius.xl, padding: 28,
+    alignItems: 'center', gap: 12, width: '100%', ...Layout.shadow.md,
+  },
+  errorTitle: { fontSize: Typography.fontSize.lg, fontWeight: Typography.fontWeight.bold, color: Colors.textPrimary },
+  errorText: { fontSize: Typography.fontSize.sm, color: Colors.textSecondary, textAlign: 'center' },
+  retryBtn: {
+    backgroundColor: Colors.success, borderRadius: Layout.radius.lg,
+    paddingVertical: 12, paddingHorizontal: 32, marginTop: 4,
+  },
+  retryText: { color: '#fff', fontWeight: Typography.fontWeight.semibold, fontSize: Typography.fontSize.sm },
 });
