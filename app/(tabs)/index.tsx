@@ -56,6 +56,15 @@ const SYSTEM_PROMPT = `أنت الطبيب الذكي في تطبيق مُعاف
 
 عند تحليل الصور: اذكر ما تراه، درجة الخطورة المحتملة، والتوصيات.`;
 
+// ─── Safe string helper ───────────────────────────────────────────────────────
+// Prevents EXC_BAD_ACCESS when Hermes tries to create a StringPrimitive from
+// a non-string value coming from the AI API or Supabase.
+function safeString(value: unknown, fallback = ''): string {
+  if (typeof value === 'string') return value;
+  if (value == null) return fallback;
+  try { return String(value); } catch { return fallback; }
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function AIDoctorScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -74,82 +83,114 @@ export default function AIDoctorScreen() {
   }, []);
 
   const initSession = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await loadOrCreateConversation(user.id);
-    await loadDailyCount(user.id);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await loadOrCreateConversation(user.id);
+      await loadDailyCount(user.id);
+    } catch {
+      // Non-fatal — user can still see the empty chat screen
+      console.warn('[AIDoctorScreen] initSession failed');
+    }
   };
 
   const loadOrCreateConversation = async (uid: string) => {
-    const today = new Date().toISOString().split('T')[0];
-    const { data } = await supabase
-      .from('chat_conversations')
-      .select('id')
-      .eq('user_id', uid)
-      .gte('created_at', today)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (data) {
-      setConversationId(data.id);
-      await loadMessages(data.id);
-    } else {
-      const { data: newConv } = await supabase
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const { data } = await supabase
         .from('chat_conversations')
-        .insert({ user_id: uid, title: 'جلسة الطبيب الذكي' })
         .select('id')
-        .single();
-      if (newConv) setConversationId(newConv.id);
+        .eq('user_id', uid)
+        .gte('created_at', today)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (data) {
+        setConversationId(data.id);
+        await loadMessages(data.id);
+      } else {
+        const { data: newConv } = await supabase
+          .from('chat_conversations')
+          .insert({ user_id: uid, title: 'جلسة الطبيب الذكي' })
+          .select('id')
+          .single();
+        if (newConv) setConversationId(newConv.id);
+      }
+    } catch {
+      console.warn('[AIDoctorScreen] loadOrCreateConversation failed');
     }
   };
 
   const loadMessages = async (convId: string) => {
-    const { data } = await supabase
-      .from('chat_messages')
-      .select('*')
-      .eq('conversation_id', convId)
-      .order('created_at', { ascending: true });
-    if (data) setMessages(data as Message[]);
+    try {
+      const { data } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('conversation_id', convId)
+        .order('created_at', { ascending: true });
+      if (data) setMessages(data as Message[]);
+    } catch {
+      console.warn('[AIDoctorScreen] loadMessages failed');
+    }
   };
 
   const loadDailyCount = async (uid: string) => {
-    const today = new Date().toISOString().split('T')[0];
-    const { count } = await supabase
-      .from('chat_messages')
-      .select('id', { count: 'exact', head: true })
-      .eq('role', 'user')
-      .gte('created_at', today)
-      .in('conversation_id',
-        (await supabase.from('chat_conversations').select('id').eq('user_id', uid).then(r => r.data?.map(c => c.id) ?? []))
-      );
-    setDailyCount(count ?? 0);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const convIds = await supabase
+        .from('chat_conversations')
+        .select('id')
+        .eq('user_id', uid)
+        .then(r => r.data?.map(c => c.id) ?? []);
+
+      const { count } = await supabase
+        .from('chat_messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('role', 'user')
+        .gte('created_at', today)
+        .in('conversation_id', convIds);
+      setDailyCount(count ?? 0);
+    } catch {
+      console.warn('[AIDoctorScreen] loadDailyCount failed');
+    }
   };
 
+  // ── Native API: ImagePicker — wrapped in try-catch to prevent TurboModule crash ──
   const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.7,
-      base64: true,
-    });
-    if (!result.canceled && result.assets[0].base64) {
-      setSelectedImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.7,
+        base64: true,
+      });
+      if (!result.canceled && result.assets[0]?.base64) {
+        setSelectedImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
+      }
+    } catch {
+      // ObjC exception from UIImagePickerController can propagate through TurboModule
+      Alert.alert('خطأ', 'تعذر فتح معرض الصور. يرجى التحقق من صلاحيات التطبيق.');
     }
   };
 
   const saveMessage = async (role: 'user' | 'assistant', content: string, imageUrl?: string) => {
     if (!conversationId) return null;
-    const { data } = await supabase
-      .from('chat_messages')
-      .insert({
-        conversation_id: conversationId,
-        role,
-        content,
-        image_url: imageUrl ?? null,
-      })
-      .select('*')
-      .single();
-    return data as Message | null;
+    try {
+      const { data } = await supabase
+        .from('chat_messages')
+        .insert({
+          conversation_id: conversationId,
+          role,
+          // Always save a safe string — prevents null crash on reload
+          content: safeString(content, '...'),
+          image_url: imageUrl ?? null,
+        })
+        .select('*')
+        .single();
+      return data as Message | null;
+    } catch {
+      return null;
+    }
   };
 
   const callOpenAI = async (userContent: string, imageBase64?: string) => {
@@ -157,17 +198,18 @@ export default function AIDoctorScreen() {
       return 'مفتاح OpenAI API غير مُعيَّن. يرجى إضافة EXPO_PUBLIC_OPENAI_API_KEY في ملف .env';
     }
 
+    // Guard: ensure all message contents are strings before sending to Hermes string ops
     const history = messages.slice(-6).map(m => ({
       role: m.role,
-      content: m.content,
+      content: safeString(m.content),
     }));
 
     const userMessage = imageBase64
       ? [
-          { type: 'text', text: userContent || 'حلل هذه الصورة الطبية' },
+          { type: 'text', text: safeString(userContent) || 'حلل هذه الصورة الطبية' },
           { type: 'image_url', image_url: { url: imageBase64, detail: 'low' } },
         ]
-      : userContent;
+      : safeString(userContent);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -191,12 +233,13 @@ export default function AIDoctorScreen() {
     });
 
     if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error?.message ?? 'خطأ في الاتصال بالذكاء الاصطناعي');
+      const err = await response.json().catch(() => ({}));
+      throw new Error(safeString(err?.error?.message, 'خطأ في الاتصال بالذكاء الاصطناعي'));
     }
 
     const json = await response.json();
-    return json.choices[0]?.message?.content ?? 'لا توجد إجابة';
+    // Guard: choices[0]?.message?.content could be null from API
+    return safeString(json?.choices?.[0]?.message?.content, 'لا توجد إجابة');
   };
 
   const sendMessage = useCallback(async () => {
@@ -229,16 +272,16 @@ export default function AIDoctorScreen() {
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: reply,
+        content: safeString(reply, 'لا توجد إجابة'),
         created_at: new Date().toISOString(),
       };
       setMessages(prev => [...prev, aiMsg]);
-      await saveMessage('assistant', reply);
+      await saveMessage('assistant', safeString(reply));
     } catch (err) {
       const errMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `حدث خطأ: ${err instanceof Error ? err.message : 'يرجى المحاولة مرة أخرى'}`,
+        content: `حدث خطأ: ${err instanceof Error ? safeString(err.message, 'يرجى المحاولة مرة أخرى') : 'يرجى المحاولة مرة أخرى'}`,
         created_at: new Date().toISOString(),
       };
       setMessages(prev => [...prev, errMsg]);
@@ -254,6 +297,11 @@ export default function AIDoctorScreen() {
 
   const renderMessage = ({ item }: { item: Message }) => {
     const isUser = item.role === 'user';
+    // Guard: created_at may be null/undefined from DB — fallback to empty string
+    const timeLabel = item.created_at
+      ? new Date(item.created_at).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })
+      : '';
+
     return (
       <View style={[styles.msgRow, isUser ? styles.msgRowUser : styles.msgRowAI]}>
         <View style={[styles.avatar, isUser ? styles.avatarUser : styles.avatarAI]}>
@@ -262,15 +310,15 @@ export default function AIDoctorScreen() {
             : <Bot size={16} color="#fff" />}
         </View>
         <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAI]}>
-          {item.image_url && (
+          {item.image_url ? (
             <Image source={{ uri: item.image_url }} style={styles.previewImage} resizeMode="cover" />
-          )}
+          ) : null}
           <Text style={[styles.bubbleText, isUser ? styles.textUser : styles.textAI]}>
-            {item.content}
+            {safeString(item.content)}
           </Text>
-          <Text style={styles.timestamp}>
-            {new Date(item.created_at).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
-          </Text>
+          {timeLabel ? (
+            <Text style={styles.timestamp}>{timeLabel}</Text>
+          ) : null}
         </View>
       </View>
     );
@@ -393,29 +441,18 @@ const styles = StyleSheet.create({
     maxWidth: '78%', padding: 10, borderRadius: 14,
     ...Layout.shadow.sm,
   },
-  bubbleUser: {
-    backgroundColor: Colors.primary,
-    borderBottomRightRadius: 4,
-  },
-  bubbleAI: {
-    backgroundColor: Colors.white,
-    borderBottomLeftRadius: 4,
-  },
+  bubbleUser: { backgroundColor: Colors.primary, borderBottomRightRadius: 4 },
+  bubbleAI: { backgroundColor: Colors.white, borderBottomLeftRadius: 4 },
   bubbleText: { fontSize: Typography.fontSize.sm, lineHeight: 20 },
   textUser: { color: '#fff' },
   textAI: { color: Colors.textPrimary },
   timestamp: { fontSize: 10, color: 'rgba(255,255,255,0.6)', marginTop: 4, textAlign: 'right' },
-  emptyState: {
-    flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32,
-  },
+  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
   emptyTitle: {
     fontSize: Typography.fontSize.xl, fontWeight: Typography.fontWeight.bold,
     color: Colors.textPrimary, marginTop: 16, marginBottom: 8, textAlign: 'center',
   },
-  emptySub: {
-    fontSize: Typography.fontSize.sm, color: Colors.textSecondary,
-    textAlign: 'center', lineHeight: 22,
-  },
+  emptySub: { fontSize: Typography.fontSize.sm, color: Colors.textSecondary, textAlign: 'center', lineHeight: 22 },
   imagePreviewRow: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12,
     paddingVertical: 6, backgroundColor: Colors.white,
@@ -441,10 +478,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 10, fontSize: Typography.fontSize.sm,
     color: Colors.textPrimary, maxHeight: 100, borderWidth: 1, borderColor: Colors.border,
   },
-  sendBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    justifyContent: 'center', alignItems: 'center',
-  },
+  sendBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
   sendBtnActive: { backgroundColor: Colors.primary },
   sendBtnDisabled: { backgroundColor: Colors.textMuted },
   previewImage: { width: '100%', height: 150, borderRadius: 8, marginBottom: 6 },

@@ -1,7 +1,7 @@
 /**
  * Push notifications hook.
- * Handles permission request, token registration, and incoming notification listeners.
- * Call this once from the root layout (or individual portal layout) after the user is authenticated.
+ * All native API calls are individually wrapped in try-catch to prevent ObjC
+ * exceptions from propagating through the TurboModule bridge (EXC_BAD_ACCESS).
  */
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
@@ -9,49 +9,58 @@ import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { supabase } from '@lib/supabase';
 
-// How foreground notifications should appear
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+// Foreground notification appearance — wrapped to prevent crash on unsupported OS versions
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+} catch {
+  console.warn('[useNotifications] setNotificationHandler failed');
+}
 
 /**
- * Requests permission, retrieves the Expo push token, and saves it to the
- * `users` table so the backend can send targeted pushes.
+ * Requests permission and retrieves the Expo push token.
+ * Each native call is individually guarded — one failure does not block the rest.
  */
 async function registerForPushNotificationsAsync(): Promise<string | null> {
-  if (!Device.isDevice) {
-    // Push tokens are not available in emulators.
+  // Simulator / emulator has no push token
+  if (!Device.isDevice) return null;
+
+  try {
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== 'granted') return null;
+
+    // Android: notification channel setup — wrapped separately so iOS flow is unaffected
+    if (Platform.OS === 'android') {
+      try {
+        await Notifications.setNotificationChannelAsync('default', {
+          name: 'الإشعارات العامة',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#0ea5e9',
+        });
+      } catch {
+        console.warn('[useNotifications] Android channel setup failed');
+      }
+    }
+
+    const tokenData = await Notifications.getExpoPushTokenAsync();
+    return tokenData?.data ?? null;
+  } catch {
+    console.warn('[useNotifications] registerForPushNotificationsAsync failed');
     return null;
   }
-
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-
-  if (finalStatus !== 'granted') {
-    return null;
-  }
-
-  // Android requires an explicit notification channel.
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'الإشعارات العامة',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#0ea5e9',
-    });
-  }
-
-  const token = (await Notifications.getExpoPushTokenAsync()).data;
-  return token;
 }
 
 interface UseNotificationsOptions {
@@ -64,7 +73,7 @@ export function useNotifications({ onNotificationTapped }: UseNotificationsOptio
   const responseListener = useRef<Notifications.EventSubscription>();
 
   useEffect(() => {
-    // Register push token and persist to Supabase
+    // Register push token and persist to Supabase — fully non-fatal
     const setupPush = async () => {
       try {
         const token = await registerForPushNotificationsAsync();
@@ -77,31 +86,35 @@ export function useNotifications({ onNotificationTapped }: UseNotificationsOptio
           .from('users')
           .update({ push_token: token })
           .eq('id', user.id);
-      } catch (err) {
-        // Non-fatal — app works fine without push tokens.
-        console.warn('[useNotifications] push setup failed:', err);
+      } catch {
+        console.warn('[useNotifications] push setup failed');
       }
     };
 
     setupPush();
 
-    // Listen for notifications received while app is in foreground
-    notificationListener.current = Notifications.addNotificationReceivedListener(
-      notification => {
-        console.log('[useNotifications] received:', notification);
-      },
-    );
+    // Listener registration wrapped individually — prevents crash if native module fails
+    try {
+      notificationListener.current = Notifications.addNotificationReceivedListener(
+        notification => {
+          console.log('[useNotifications] received:', notification.request.identifier);
+        },
+      );
+    } catch {
+      console.warn('[useNotifications] addNotificationReceivedListener failed');
+    }
 
-    // Listen for user tapping a notification
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(
-      response => {
-        onNotificationTapped?.(response.notification);
-      },
-    );
+    try {
+      responseListener.current = Notifications.addNotificationResponseReceivedListener(
+        response => { onNotificationTapped?.(response.notification); },
+      );
+    } catch {
+      console.warn('[useNotifications] addNotificationResponseReceivedListener failed');
+    }
 
     return () => {
-      notificationListener.current?.remove();
-      responseListener.current?.remove();
+      try { notificationListener.current?.remove(); } catch { /* no-op */ }
+      try { responseListener.current?.remove(); } catch { /* no-op */ }
     };
   }, [onNotificationTapped]);
 }
