@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>تأكيد حسابك في مُعافى</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      direction: rtl;
+    }
+    .wrapper {
+      max-width: 600px;
+      margin: 40px auto;
+      background: #ffffff;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+      padding: 40px 32px 32px;
+      text-align: center;
+    }
+    .logo-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 50px;
+      padding: 8px 20px;
+      margin-bottom: 24px;
+    }
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: #ffffff;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      line-height: 32px;
+      text-align: center;
+    }
+    .logo-text {
+      font-size: 22px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+    }
+    .header-icon-wrap {
+      width: 72px;
+      height: 72px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .header-icon { font-size: 36px; }
+    .header-title {
+      font-size: 26px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 6px;
+    }
+    .header-subtitle {
+      font-size: 14px;
+      color: rgba(255,255,255,0.85);
+      line-height: 1.6;
+    }
+
+    /* ── Body ── */
+    .body { padding: 40px 32px; }
+    .greeting {
+      font-size: 17px;
+      color: #0f172a;
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+    .body-text {
+      font-size: 15px;
+      color: #475569;
+      line-height: 1.7;
+      margin-bottom: 32px;
+    }
+
+    /* ── OTP Box ── */
+    .otp-section {
+      background: #f0f9ff;
+      border: 2px dashed #0ea5e9;
+      border-radius: 12px;
+      padding: 28px 20px;
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .otp-label {
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+    .otp-code {
+      font-size: 44px;
+      font-weight: 800;
+      color: #0284c7;
+      letter-spacing: 10px;
+      font-family: 'Courier New', monospace;
+      direction: ltr;
+      display: block;
+    }
+    .otp-expiry {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 12px;
+    }
+
+    /* ── CTA Button ── */
+    .cta-wrap { text-align: center; margin-bottom: 32px; }
+    .cta-btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #0ea5e9, #0284c7);
+      color: #ffffff;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 14px 40px;
+      border-radius: 50px;
+      box-shadow: 0 4px 12px rgba(14,165,233,0.35);
+    }
+
+    /* ── Divider ── */
+    .divider {
+      border: none;
+      border-top: 1px solid #e2e8f0;
+      margin: 28px 0;
+    }
+
+    /* ── Warning box ── */
+    .warning-box {
+      background: #fffbeb;
+      border-right: 4px solid #f59e0b;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 24px;
+    }
+    .warning-box p {
+      font-size: 13px;
+      color: #92400e;
+      line-height: 1.6;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      padding: 24px 32px;
+      text-align: center;
+    }
+    .footer-links {
+      margin-bottom: 12px;
+    }
+    .footer-links a {
+      font-size: 13px;
+      color: #0ea5e9;
+      text-decoration: none;
+      margin: 0 8px;
+    }
+    .footer-copy {
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.6;
+    }
+    .footer-logo {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0ea5e9;
+      margin-bottom: 10px;
+    }
+
+    @media (max-width: 600px) {
+      .wrapper { margin: 0; border-radius: 0; }
+      .header, .body { padding: 28px 20px; }
+      .otp-code { font-size: 36px; letter-spacing: 6px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="logo-wrap">
+        <span class="logo-icon">🏥</span>
+        <span class="logo-text">مُعافى</span>
+      </div>
+      <div class="header-icon-wrap">
+        <span class="header-icon">✅</span>
+      </div>
+      <h1 class="header-title">تأكيد حسابك</h1>
+      <p class="header-subtitle">خطوة واحدة وتكون جاهزاً للبدء</p>
+    </div>
+
+    <!-- Body -->
+    <div class="body">
+      <p class="greeting">أهلاً وسهلاً في مُعافى 👋</p>
+      <p class="body-text">
+        شكراً لتسجيلك في منصة <strong>مُعافى</strong> للخدمات الصحية.
+        لتفعيل حسابك، استخدم رمز التحقق أدناه أو اضغط على الزر للتأكيد المباشر.
+      </p>
+
+      <!-- OTP Code -->
+      <div class="otp-section">
+        <p class="otp-label">رمز التحقق المكون من 6 أرقام</p>
+        <span class="otp-code">{{ .Token }}</span>
+        <p class="otp-expiry">⏱ صالح لمدة 60 دقيقة فقط</p>
+      </div>
+
+      <!-- OR CTA -->
+      <p style="text-align:center; font-size:13px; color:#94a3b8; margin-bottom:20px;">أو</p>
+      <div class="cta-wrap">
+        <a href="{{ .ConfirmationURL }}" class="cta-btn">تأكيد الحساب مباشرة</a>
+      </div>
+
+      <hr class="divider" />
+
+      <!-- Warning -->
+      <div class="warning-box">
+        <p>
+          🔒 <strong>تنبيه أمني:</strong> إذا لم تطلب إنشاء حساب في مُعافى، يُرجى تجاهل هذه الرسالة تماماً.
+          لا تشارك هذا الرمز مع أي شخص.
+        </p>
+      </div>
+
+      <p style="font-size:13px; color:#94a3b8; text-align:center;">
+        هذه الرسالة أُرسلت إلى <strong>{{ .Email }}</strong>
+      </p>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <div class="footer-logo">🏥 مُعافى</div>
+      <div class="footer-links">
+        <a href="#">سياسة الخصوصية</a>
+        <a href="#">الشروط والأحكام</a>
+        <a href="#">تواصل معنا</a>
+      </div>
+      <p class="footer-copy">
+        © 2026 مُعافى — جميع الحقوق محفوظة<br />
+        منصة الخدمات الصحية الذكية في المملكة العربية السعودية
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>
