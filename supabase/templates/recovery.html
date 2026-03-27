@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>إعادة تعيين كلمة المرور — مُعافى</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      direction: rtl;
+    }
+    .wrapper {
+      max-width: 600px;
+      margin: 40px auto;
+      background: #ffffff;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+      padding: 40px 32px 32px;
+      text-align: center;
+    }
+    .logo-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 50px;
+      padding: 8px 20px;
+      margin-bottom: 24px;
+    }
+    .logo-icon {
+      font-size: 20px;
+    }
+    .logo-text {
+      font-size: 22px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    .header-icon-wrap {
+      width: 72px;
+      height: 72px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .header-icon { font-size: 36px; }
+    .header-title {
+      font-size: 26px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 6px;
+    }
+    .header-subtitle {
+      font-size: 14px;
+      color: rgba(255,255,255,0.85);
+      line-height: 1.6;
+    }
+
+    /* ── Body ── */
+    .body { padding: 40px 32px; }
+    .greeting {
+      font-size: 17px;
+      color: #0f172a;
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+    .body-text {
+      font-size: 15px;
+      color: #475569;
+      line-height: 1.7;
+      margin-bottom: 32px;
+    }
+
+    /* ── Steps ── */
+    .steps {
+      background: #fff7ed;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+    .steps-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #92400e;
+      margin-bottom: 16px;
+    }
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .step:last-child { margin-bottom: 0; }
+    .step-num {
+      width: 24px;
+      height: 24px;
+      background: #f97316;
+      color: #fff;
+      border-radius: 50%;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-text {
+      font-size: 14px;
+      color: #7c3aed;
+      color: #92400e;
+      line-height: 1.5;
+      padding-top: 2px;
+    }
+
+    /* ── CTA ── */
+    .cta-wrap { text-align: center; margin-bottom: 32px; }
+    .cta-btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #f97316, #ea580c);
+      color: #ffffff;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 14px 40px;
+      border-radius: 50px;
+      box-shadow: 0 4px 12px rgba(249,115,22,0.35);
+    }
+
+    /* ── URL fallback ── */
+    .url-fallback {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 24px;
+    }
+    .url-fallback p {
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 6px;
+    }
+    .url-fallback a {
+      font-size: 11px;
+      color: #0ea5e9;
+      word-break: break-all;
+      direction: ltr;
+      display: block;
+    }
+
+    /* ── Warning ── */
+    .warning-box {
+      background: #fef2f2;
+      border-right: 4px solid #ef4444;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 24px;
+    }
+    .warning-box p {
+      font-size: 13px;
+      color: #7f1d1d;
+      line-height: 1.6;
+    }
+
+    .divider { border: none; border-top: 1px solid #e2e8f0; margin: 28px 0; }
+
+    /* ── Footer ── */
+    .footer {
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      padding: 24px 32px;
+      text-align: center;
+    }
+    .footer-links { margin-bottom: 12px; }
+    .footer-links a {
+      font-size: 13px;
+      color: #0ea5e9;
+      text-decoration: none;
+      margin: 0 8px;
+    }
+    .footer-copy {
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.6;
+    }
+    .footer-logo {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0ea5e9;
+      margin-bottom: 10px;
+    }
+
+    @media (max-width: 600px) {
+      .wrapper { margin: 0; border-radius: 0; }
+      .header, .body { padding: 28px 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="logo-wrap">
+        <span class="logo-icon">🏥</span>
+        <span class="logo-text">مُعافى</span>
+      </div>
+      <div class="header-icon-wrap">
+        <span class="header-icon">🔐</span>
+      </div>
+      <h1 class="header-title">إعادة تعيين كلمة المرور</h1>
+      <p class="header-subtitle">طلبت إعادة تعيين كلمة المرور الخاصة بك</p>
+    </div>
+
+    <!-- Body -->
+    <div class="body">
+      <p class="greeting">مرحباً،</p>
+      <p class="body-text">
+        تلقّينا طلباً لإعادة تعيين كلمة المرور المرتبطة بحساب <strong>مُعافى</strong> الخاص بك.
+        اضغط على الزر أدناه لإنشاء كلمة مرور جديدة.
+      </p>
+
+      <!-- Steps -->
+      <div class="steps">
+        <p class="steps-title">📋 خطوات إعادة التعيين</p>
+        <div class="step">
+          <span class="step-num">1</span>
+          <span class="step-text">اضغط على زر "إعادة تعيين كلمة المرور" أدناه</span>
+        </div>
+        <div class="step">
+          <span class="step-num">2</span>
+          <span class="step-text">أدخل كلمة المرور الجديدة في الصفحة التي ستفتح</span>
+        </div>
+        <div class="step">
+          <span class="step-num">3</span>
+          <span class="step-text">سجّل دخولك باستخدام كلمة المرور الجديدة</span>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <div class="cta-wrap">
+        <a href="{{ .ConfirmationURL }}" class="cta-btn">إعادة تعيين كلمة المرور</a>
+      </div>
+
+      <!-- URL Fallback -->
+      <div class="url-fallback">
+        <p>إذا لم يعمل الزر، انسخ الرابط التالي والصقه في متصفحك:</p>
+        <a href="{{ .ConfirmationURL }}">{{ .ConfirmationURL }}</a>
+      </div>
+
+      <hr class="divider" />
+
+      <!-- Warning -->
+      <div class="warning-box">
+        <p>
+          🚨 <strong>تنبيه:</strong> إذا لم تطلب إعادة تعيين كلمة المرور، فتجاهل هذه الرسالة فوراً.
+          الرابط صالح لمدة <strong>60 دقيقة</strong> فقط. لا تشارك هذا الرابط مع أي أحد.
+        </p>
+      </div>
+
+      <p style="font-size:13px; color:#94a3b8; text-align:center;">
+        هذه الرسالة أُرسلت إلى <strong>{{ .Email }}</strong>
+      </p>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <div class="footer-logo">🏥 مُعافى</div>
+      <div class="footer-links">
+        <a href="#">سياسة الخصوصية</a>
+        <a href="#">الشروط والأحكام</a>
+        <a href="#">تواصل معنا</a>
+      </div>
+      <p class="footer-copy">
+        © 2025 مُعافى — جميع الحقوق محفوظة<br />
+        منصة الخدمات الصحية الذكية في المملكة العربية السعودية
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>

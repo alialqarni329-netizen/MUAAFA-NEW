@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>تأكيد تغيير البريد الإلكتروني — مُعافى</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      direction: rtl;
+    }
+    .wrapper {
+      max-width: 600px;
+      margin: 40px auto;
+      background: #ffffff;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+    .header {
+      background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+      padding: 40px 32px 32px;
+      text-align: center;
+    }
+    .logo-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 50px;
+      padding: 8px 20px;
+      margin-bottom: 24px;
+    }
+    .logo-text {
+      font-size: 22px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    .header-icon-wrap {
+      width: 72px;
+      height: 72px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .header-icon { font-size: 36px; }
+    .header-title { font-size: 26px; font-weight: 700; color: #ffffff; margin-bottom: 6px; }
+    .header-subtitle { font-size: 14px; color: rgba(255,255,255,0.85); line-height: 1.6; }
+
+    .body { padding: 40px 32px; }
+    .greeting { font-size: 17px; color: #0f172a; margin-bottom: 16px; font-weight: 600; }
+    .body-text { font-size: 15px; color: #475569; line-height: 1.7; margin-bottom: 32px; }
+
+    .change-info {
+      background: #f5f3ff;
+      border: 1px solid #ddd6fe;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 32px;
+    }
+    .change-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .change-row:last-child { margin-bottom: 0; }
+    .change-label {
+      font-size: 12px;
+      color: #7c3aed;
+      font-weight: 600;
+      min-width: 80px;
+    }
+    .change-value {
+      font-size: 14px;
+      color: #1e1b4b;
+      font-weight: 500;
+      direction: ltr;
+    }
+    .change-arrow {
+      font-size: 18px;
+      margin: 0 8px;
+      color: #7c3aed;
+    }
+
+    .cta-wrap { text-align: center; margin-bottom: 32px; }
+    .cta-btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+      color: #ffffff;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 14px 40px;
+      border-radius: 50px;
+      box-shadow: 0 4px 12px rgba(139,92,246,0.35);
+    }
+
+    .warning-box {
+      background: #fffbeb;
+      border-right: 4px solid #f59e0b;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 24px;
+    }
+    .warning-box p { font-size: 13px; color: #92400e; line-height: 1.6; }
+
+    .divider { border: none; border-top: 1px solid #e2e8f0; margin: 28px 0; }
+
+    .footer {
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      padding: 24px 32px;
+      text-align: center;
+    }
+    .footer-links { margin-bottom: 12px; }
+    .footer-links a { font-size: 13px; color: #0ea5e9; text-decoration: none; margin: 0 8px; }
+    .footer-copy { font-size: 12px; color: #94a3b8; line-height: 1.6; }
+    .footer-logo { font-size: 18px; font-weight: 700; color: #0ea5e9; margin-bottom: 10px; }
+
+    @media (max-width: 600px) {
+      .wrapper { margin: 0; border-radius: 0; }
+      .header, .body { padding: 28px 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <div class="logo-wrap">
+        <span style="font-size:20px">🏥</span>
+        <span class="logo-text">مُعافى</span>
+      </div>
+      <div class="header-icon-wrap">
+        <span class="header-icon">📧</span>
+      </div>
+      <h1 class="header-title">تأكيد تغيير البريد</h1>
+      <p class="header-subtitle">طلبت تغيير عنوان بريدك الإلكتروني</p>
+    </div>
+
+    <div class="body">
+      <p class="greeting">مرحباً،</p>
+      <p class="body-text">
+        تلقّينا طلباً لتغيير البريد الإلكتروني المرتبط بحسابك في <strong>مُعافى</strong>.
+        اضغط على الزر أدناه لتأكيد العنوان الجديد.
+      </p>
+
+      <div class="change-info">
+        <div class="change-row">
+          <span class="change-label">البريد الحالي</span>
+          <span class="change-value">{{ .Email }}</span>
+        </div>
+        <div style="text-align:center; margin: 8px 0;">
+          <span class="change-arrow">⬇</span>
+        </div>
+        <div class="change-row">
+          <span class="change-label">البريد الجديد</span>
+          <span class="change-value">{{ .NewEmail }}</span>
+        </div>
+      </div>
+
+      <div class="cta-wrap">
+        <a href="{{ .ConfirmationURL }}" class="cta-btn">تأكيد البريد الجديد</a>
+      </div>
+
+      <hr class="divider" />
+
+      <div class="warning-box">
+        <p>
+          ⚠️ <strong>مهم:</strong> إذا لم تطلب هذا التغيير، تواصل مع الدعم الفني فوراً.
+          الرابط صالح لمدة <strong>24 ساعة</strong> فقط.
+        </p>
+      </div>
+
+      <p style="font-size:13px; color:#94a3b8; text-align:center;">
+        هذه الرسالة أُرسلت إلى <strong>{{ .Email }}</strong>
+      </p>
+    </div>
+
+    <div class="footer">
+      <div class="footer-logo">🏥 مُعافى</div>
+      <div class="footer-links">
+        <a href="#">سياسة الخصوصية</a>
+        <a href="#">الشروط والأحكام</a>
+        <a href="#">تواصل معنا</a>
+      </div>
+      <p class="footer-copy">
+        © 2025 مُعافى — جميع الحقوق محفوظة<br />
+        منصة الخدمات الصحية الذكية في المملكة العربية السعودية
+      </p>
+    </div>
+  </div>
+</body>
+</html>
