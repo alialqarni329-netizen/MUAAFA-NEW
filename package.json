@@ -48,10 +48,13 @@
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",
+    "@testing-library/react-hooks": "^8.0.1",
+    "@types/jest": "^30.0.0",
     "@types/react": "~18.2.79",
     "@types/react-native": "~0.73.0",
     "@typescript-eslint/eslint-plugin": "^7.7.1",
     "@typescript-eslint/parser": "^7.7.1",
+    "babel-plugin-module-resolver": "^5.0.3",
     "eslint": "^8.57.0",
     "eslint-config-expo": "~8.0.0",
     "eslint-plugin-react": "^7.34.1",
@@ -60,18 +63,6 @@
     "jest-expo": "~51.0.0",
     "prettier": "^3.2.5",
     "typescript": "^5.3.3"
-  },
-  "jest": {
-    "preset": "jest-expo",
-    "transformIgnorePatterns": [
-      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)"
-    ],
-    "collectCoverageFrom": [
-      "app/**/*.{ts,tsx}",
-      "components/**/*.{ts,tsx}",
-      "lib/**/*.{ts,tsx}",
-      "hooks/**/*.{ts,tsx}"
-    ]
   },
   "private": true
 }

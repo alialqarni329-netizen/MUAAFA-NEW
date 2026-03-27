@@ -3,8 +3,9 @@ import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, ActivityIndicator, RefreshControl,
 } from 'react-native';
-import { Users, DollarSign, Calendar, TrendingUp, ArrowUpRight, ArrowDownRight } from 'lucide-react-native';
+import { Users, DollarSign, Calendar, TrendingUp } from 'lucide-react-native';
 import { supabase } from '@lib/supabase';
+import { KPICard } from '@components/common';
 import { Colors } from '@constants/colors';
 import { Typography } from '@constants/typography';
 import { Layout } from '@constants/layout';
@@ -16,14 +17,6 @@ interface DashboardStats {
   pendingPayments: number;
   totalEmployees: number;
   todayAppointments: number;
-}
-
-interface StatCard {
-  label: string;
-  value: string;
-  trend?: number;
-  icon: React.ReactNode;
-  color: string;
 }
 
 export default function BusinessDashboard() {
@@ -55,12 +48,11 @@ export default function BusinessDashboard() {
       supabase.from('medical_sessions').select('id', { count: 'exact' }).eq('business_id', biz.id).gte('scheduled_at', today),
     ]);
 
-    const confirmed = (sessRes.data ?? []).filter(s => s.status === 'confirmed').length;
     const revenue = (revRes.data ?? []).reduce((sum, t) => sum + (t.amount ?? 0), 0);
 
     setStats({
       totalSessions: sessRes.count ?? 0,
-      confirmedSessions: confirmed,
+      confirmedSessions: (sessRes.data ?? []).filter(s => s.status === 'confirmed').length,
       totalRevenue: revenue,
       pendingPayments: (sessRes.data ?? []).filter(s => s.status === 'pending').length,
       totalEmployees: empRes.count ?? 0,
@@ -75,38 +67,6 @@ export default function BusinessDashboard() {
   if (loading) {
     return <ActivityIndicator size="large" color={Colors.business} style={{ flex: 1, marginTop: 100 }} />;
   }
-
-  const statCards: StatCard[] = stats
-    ? [
-        {
-          label: 'إجمالي الجلسات',
-          value: stats.totalSessions.toString(),
-          trend: 12,
-          icon: <Calendar size={20} color="#fff" />,
-          color: Colors.business,
-        },
-        {
-          label: 'الإيرادات',
-          value: `${stats.totalRevenue.toLocaleString('ar')} ر`,
-          trend: 8,
-          icon: <DollarSign size={20} color="#fff" />,
-          color: Colors.success,
-        },
-        {
-          label: 'الموظفين',
-          value: stats.totalEmployees.toString(),
-          icon: <Users size={20} color="#fff" />,
-          color: Colors.primary,
-        },
-        {
-          label: 'مواعيد اليوم',
-          value: stats.todayAppointments.toString(),
-          trend: -3,
-          icon: <TrendingUp size={20} color="#fff" />,
-          color: Colors.warning,
-        },
-      ]
-    : [];
 
   return (
     <ScrollView
@@ -132,25 +92,35 @@ export default function BusinessDashboard() {
         </View>
       ) : (
         <>
-          {/* Stats Grid */}
-          <View style={styles.statsGrid}>
-            {statCards.map((card, i) => (
-              <View key={i} style={styles.statCard}>
-                <View style={[styles.statIcon, { backgroundColor: card.color }]}>{card.icon}</View>
-                <Text style={styles.statValue}>{card.value}</Text>
-                <Text style={styles.statLabel}>{card.label}</Text>
-                {card.trend !== undefined && (
-                  <View style={styles.trendRow}>
-                    {card.trend >= 0
-                      ? <ArrowUpRight size={12} color={Colors.success} />
-                      : <ArrowDownRight size={12} color={Colors.error} />}
-                    <Text style={[styles.trendText, { color: card.trend >= 0 ? Colors.success : Colors.error }]}>
-                      {Math.abs(card.trend)}%
-                    </Text>
-                  </View>
-                )}
-              </View>
-            ))}
+          {/* KPI Grid */}
+          <View style={styles.kpiGrid}>
+            <KPICard
+              label="إجمالي الجلسات"
+              value={stats.totalSessions.toString()}
+              icon={<Calendar size={20} color="#fff" />}
+              color={Colors.business}
+              trend={12}
+            />
+            <KPICard
+              label="الإيرادات"
+              value={`${stats.totalRevenue.toLocaleString('ar')} ر`}
+              icon={<DollarSign size={20} color="#fff" />}
+              color={Colors.success}
+              trend={8}
+            />
+            <KPICard
+              label="الموظفين"
+              value={stats.totalEmployees.toString()}
+              icon={<Users size={20} color="#fff" />}
+              color={Colors.primary}
+            />
+            <KPICard
+              label="مواعيد اليوم"
+              value={stats.todayAppointments.toString()}
+              icon={<TrendingUp size={20} color="#fff" />}
+              color={Colors.warning}
+              trend={-3}
+            />
           </View>
 
           {/* Quick Actions */}
@@ -199,20 +169,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6, borderRadius: Layout.radius.full,
   },
   dateText: { color: '#fff', fontSize: Typography.fontSize.sm },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', padding: 12, gap: 10 },
-  statCard: {
-    width: (Layout.window.width - 34) / 2,
-    backgroundColor: Colors.white, borderRadius: Layout.radius.lg,
-    padding: 14, ...Layout.shadow.sm, alignItems: 'flex-start',
-  },
-  statIcon: {
-    width: 38, height: 38, borderRadius: 10,
-    justifyContent: 'center', alignItems: 'center', marginBottom: 8,
-  },
-  statValue: { fontSize: Typography.fontSize.xl, fontWeight: Typography.fontWeight.bold, color: Colors.textPrimary },
-  statLabel: { fontSize: Typography.fontSize.xs, color: Colors.textSecondary, marginTop: 2 },
-  trendRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 2 },
-  trendText: { fontSize: 11, fontWeight: Typography.fontWeight.semibold },
+  kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', padding: 12, gap: 10 },
   section: { margin: 12 },
   sectionTitle: { fontSize: Typography.fontSize.md, fontWeight: Typography.fontWeight.semibold, color: Colors.textPrimary, marginBottom: 10 },
   actionsRow: { flexDirection: 'row', gap: 8 },

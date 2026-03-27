@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { CheckCircle, Clock, XCircle, FileText } from 'lucide-react-native';
 import { supabase } from '@lib/supabase';
+import { StatusBadge } from '@components/common';
 import { Colors } from '@constants/colors';
 import { Typography } from '@constants/typography';
 import { Layout } from '@constants/layout';
@@ -77,9 +78,7 @@ export default function BusinessBilling() {
         </View>
         <View style={styles.invoiceRight}>
           <Text style={styles.invoiceAmount}>{item.amount.toLocaleString('ar')} ر</Text>
-          <View style={[styles.statusBadge, { backgroundColor: cfg.color + '15' }]}>
-            <Text style={[styles.statusText, { color: cfg.color }]}>{cfg.label}</Text>
-          </View>
+          <StatusBadge label={cfg.label} color={cfg.color} />
         </View>
       </View>
     );
@@ -153,8 +152,6 @@ const styles = StyleSheet.create({
   invoiceDate: { fontSize: Typography.fontSize.xs, color: Colors.textMuted, marginTop: 2 },
   invoiceRight: { alignItems: 'flex-end', gap: 4 },
   invoiceAmount: { fontSize: Typography.fontSize.md, fontWeight: Typography.fontWeight.bold, color: Colors.textPrimary },
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: Layout.radius.full },
-  statusText: { fontSize: 11, fontWeight: Typography.fontWeight.semibold },
   empty: { alignItems: 'center', paddingTop: 60, gap: 12 },
   emptyText: { fontSize: Typography.fontSize.md, color: Colors.textMuted },
 });

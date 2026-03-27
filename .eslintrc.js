@@ -29,6 +29,16 @@ module.exports = {
     'prefer-const': 'error',
     'no-var': 'error',
   },
+  overrides: [
+    {
+      // Test files: allow jest.mock() and env setup before imports (Jest hoists mocks anyway)
+      files: ['__tests__/**/*.ts', '__tests__/**/*.tsx', '**/*.test.ts', '**/*.test.tsx'],
+      rules: {
+        'import/first': 'off',
+        '@typescript-eslint/no-explicit-any': 'off',
+      },
+    },
+  ],
   ignorePatterns: [
     'node_modules/',
     'dist/',

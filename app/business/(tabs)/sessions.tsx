@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Calendar, CheckCircle, Clock, XCircle, Video, MessageCircle } from 'lucide-react-native';
 import { supabase } from '@lib/supabase';
+import { StatusBadge } from '@components/common';
 import { Colors } from '@constants/colors';
 import { Typography } from '@constants/typography';
 import { Layout } from '@constants/layout';
@@ -72,10 +73,11 @@ export default function BusinessSessions() {
     return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <View style={[styles.statusBadge, { backgroundColor: cfg.color + '15' }]}>
-            <cfg.Icon size={12} color={cfg.color} />
-            <Text style={[styles.statusText, { color: cfg.color }]}>{cfg.label}</Text>
-          </View>
+          <StatusBadge
+            label={cfg.label}
+            color={cfg.color}
+            icon={<cfg.Icon size={12} color={cfg.color} />}
+          />
           <View style={styles.typeTag}>
             {item.session_type === 'video'
               ? <Video size={13} color={Colors.primary} />
@@ -163,8 +165,6 @@ const styles = StyleSheet.create({
   list: { padding: 12, gap: 10 },
   card: { backgroundColor: Colors.white, borderRadius: Layout.radius.lg, padding: 14, ...Layout.shadow.sm },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: Layout.radius.full },
-  statusText: { fontSize: 11, fontWeight: Typography.fontWeight.semibold },
   typeTag: { padding: 4 },
   dateText: { fontSize: Typography.fontSize.sm, color: Colors.textSecondary },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: Colors.divider },

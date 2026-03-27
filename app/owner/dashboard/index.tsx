@@ -9,6 +9,7 @@ import {
 } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { supabase } from '@lib/supabase';
+import { KPICard } from '@components/common';
 import { Colors } from '@constants/colors';
 import { Typography } from '@constants/typography';
 import { Layout } from '@constants/layout';
@@ -119,12 +120,7 @@ export default function OwnerDashboard() {
       {/* KPI Grid */}
       <View style={styles.kpiGrid}>
         {kpis.map((kpi, i) => (
-          <View key={i} style={styles.kpiCard}>
-            <View style={[styles.kpiIcon, { backgroundColor: kpi.color }]}>{kpi.icon}</View>
-            <Text style={styles.kpiValue}>{kpi.value}</Text>
-            <Text style={styles.kpiLabel}>{kpi.label}</Text>
-            <Text style={styles.kpiSub}>{kpi.sub}</Text>
-          </View>
+          <KPICard key={i} label={kpi.label} value={kpi.value} icon={kpi.icon} color={kpi.color} sub={kpi.sub} />
         ))}
       </View>
 
@@ -172,11 +168,6 @@ const styles = StyleSheet.create({
   alertBannerText: { flex: 1, fontSize: Typography.fontSize.sm, color: Colors.textPrimary },
   alertBannerCta: { fontSize: Typography.fontSize.sm, color: Colors.warning, fontWeight: Typography.fontWeight.semibold },
   kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', padding: 12, gap: 10 },
-  kpiCard: { width: (Layout.window.width - 34) / 2, backgroundColor: Colors.white, borderRadius: Layout.radius.lg, padding: 14, ...Layout.shadow.sm },
-  kpiIcon: { width: 38, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-  kpiValue: { fontSize: Typography.fontSize.xl, fontWeight: Typography.fontWeight.bold, color: Colors.textPrimary },
-  kpiLabel: { fontSize: Typography.fontSize.xs, color: Colors.textSecondary, marginTop: 2 },
-  kpiSub: { fontSize: 10, color: Colors.textMuted, marginTop: 2 },
   section: { margin: 12 },
   sectionTitle: { fontSize: Typography.fontSize.md, fontWeight: Typography.fontWeight.semibold, color: Colors.textPrimary, marginBottom: 10 },
   navList: { backgroundColor: Colors.white, borderRadius: Layout.radius.lg, overflow: 'hidden', ...Layout.shadow.sm },

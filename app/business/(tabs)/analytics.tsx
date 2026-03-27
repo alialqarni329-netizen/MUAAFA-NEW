@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { BarChart2, TrendingUp, Users, DollarSign, Activity } from 'lucide-react-native';
 import { supabase } from '@lib/supabase';
+import { KPICard } from '@components/common';
 import { Colors } from '@constants/colors';
 import { Typography } from '@constants/typography';
 import { Layout } from '@constants/layout';
@@ -98,18 +99,10 @@ export default function BusinessAnalytics() {
 
       {/* KPI Cards */}
       <View style={styles.kpiGrid}>
-        {[
-          { label: 'الإيرادات', value: `${data?.monthlyRevenue.toLocaleString('ar') ?? 0} ر`, icon: <DollarSign size={18} color="#fff" />, color: Colors.success },
-          { label: 'المرضى', value: String(data?.totalPatients ?? 0), icon: <Users size={18} color="#fff" />, color: Colors.primary },
-          { label: 'متوسط الجلسة', value: `${Math.round(data?.avgSessionValue ?? 0)} ر`, icon: <Activity size={18} color="#fff" />, color: Colors.business },
-          { label: 'النمو الشهري', value: `${data?.monthlyGrowth ?? 0}%`, icon: <TrendingUp size={18} color="#fff" />, color: Colors.warning },
-        ].map((kpi, i) => (
-          <View key={i} style={styles.kpiCard}>
-            <View style={[styles.kpiIcon, { backgroundColor: kpi.color }]}>{kpi.icon}</View>
-            <Text style={styles.kpiValue}>{kpi.value}</Text>
-            <Text style={styles.kpiLabel}>{kpi.label}</Text>
-          </View>
-        ))}
+        <KPICard label="الإيرادات" value={`${data?.monthlyRevenue.toLocaleString('ar') ?? 0} ر`} icon={<DollarSign size={18} color="#fff" />} color={Colors.success} />
+        <KPICard label="المرضى" value={String(data?.totalPatients ?? 0)} icon={<Users size={18} color="#fff" />} color={Colors.primary} />
+        <KPICard label="متوسط الجلسة" value={`${Math.round(data?.avgSessionValue ?? 0)} ر`} icon={<Activity size={18} color="#fff" />} color={Colors.business} />
+        <KPICard label="النمو الشهري" value={`${data?.monthlyGrowth ?? 0}%`} icon={<TrendingUp size={18} color="#fff" />} color={Colors.warning} />
       </View>
 
       {/* Sessions by Status */}
@@ -149,17 +142,6 @@ const styles = StyleSheet.create({
   title: { fontSize: Typography.fontSize['2xl'], fontWeight: Typography.fontWeight.bold, color: '#fff' },
   subtitle: { fontSize: Typography.fontSize.sm, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
   kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', padding: 12, gap: 10 },
-  kpiCard: {
-    width: (Layout.window.width - 34) / 2,
-    backgroundColor: Colors.white, borderRadius: Layout.radius.lg,
-    padding: 14, alignItems: 'flex-start', ...Layout.shadow.sm,
-  },
-  kpiIcon: {
-    width: 36, height: 36, borderRadius: 10,
-    justifyContent: 'center', alignItems: 'center', marginBottom: 8,
-  },
-  kpiValue: { fontSize: Typography.fontSize.xl, fontWeight: Typography.fontWeight.bold, color: Colors.textPrimary },
-  kpiLabel: { fontSize: Typography.fontSize.xs, color: Colors.textSecondary, marginTop: 2 },
   section: { margin: 12 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   sectionTitle: { fontSize: Typography.fontSize.md, fontWeight: Typography.fontWeight.semibold, color: Colors.textPrimary },
